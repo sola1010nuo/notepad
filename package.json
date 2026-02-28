@@ -1,0 +1,49 @@
+{
+  "name": "universal-note-app",
+  "version": "1.0.0",
+  "private": true,
+  "main": "electron.js",
+  "scripts": {
+    "start": "electron .",
+    "electron:dev": "cross-env ELECTRON_START_URL=http://localhost:3000 .\\node_modules\\.bin\\electron.cmd .\\electron.js",
+    "client": "npm start --prefix client",
+    "build-server": "tsc -p server/tsconfig.json",
+    "server": "npm run build-server && node server/dist/index.js",
+    "build": "npm run build --prefix client && npm run build-server",
+    "dist": "npm run build && electron-builder",
+    "test": "npm test --prefix client"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.6.2",
+    "cors": "^2.8.5",
+    "electron": "^26.2.0",
+    "express": "^4.17.1",
+    "mongoose": "^5.10.9"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/body-parser": "^1.19.6",
+    "@types/express": "^5.0.6",
+    "electron-builder": "^24.6.0",
+    "cross-env": "^7.0.3",
+    "nodemon": "^2.0.7",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "build": {
+    "appId": "com.example.universalnote",
+    "productName": "UniversalNoteApp",
+    "directories": {
+      "output": "dist_electron"
+    },
+    "files": [
+      "electron.js",
+      "server/dist/**/*",
+      "client/build/**/*",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    }
+  }
+}

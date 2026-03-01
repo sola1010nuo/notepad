@@ -1,0 +1,22 @@
+/* Chrome/Edge (webkit) */
+input.hide-native-hint:invalid::-webkit-datetime-edit,
+input.hide-native-hint:invalid::-webkit-date-and-time-value,
+input.hide-native-hint:invalid::-webkit-datetime-edit-text,
+input.hide-native-hint:invalid::-webkit-datetime-edit-month-field,
+input.hide-native-hint:invalid::-webkit-datetime-edit-day-field,
+input.hide-native-hint:invalid::-webkit-datetime-edit-year-field,
+input.hide-native-hint:invalid::-webkit-datetime-edit-hour-field,
+input.hide-native-hint:invalid::-webkit-datetime-edit-minute-field {
+  color: transparent;
+}
+
+input.hide-native-hint:focus::-webkit-datetime-edit,
+input.hide-native-hint:focus::-webkit-date-and-time-value,
+input.hide-native-hint:focus::-webkit-datetime-edit-text,
+input.hide-native-hint:focus::-webkit-datetime-edit-month-field,
+input.hide-native-hint:focus::-webkit-datetime-edit-day-field,
+input.hide-native-hint:focus::-webkit-datetime-edit-year-field,
+input.hide-native-hint:focus::-webkit-datetime-edit-hour-field,
+input.hide-native-hint:focus::-webkit-datetime-edit-minute-field {
+  color: inherit;
+}

@@ -1,94 +1,97 @@
-import { useState, useEffect } from 'react';
-import { Note, CreateNoteInput, UpdateNoteInput } from '../types';
+//業務流程/狀態管理層 (state + business logic layer)。
 
-export const useNotes = () => {
-    const [notes, setNotes] = useState<Note[]>([]);
-    const [selectedNote, setSelectedNote] = useState<Note | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
+import { useCallback, useEffect, useState } from "react";
+import {
+  fetchNotes as apiFetchNotes,
+  createNote as apiCreateNote,
+  deleteNote as apiDeleteNote,
+} from "../services/api";
 
-    useEffect(() => {
-        const fetchNotes = async () => {
-            try {
-                const response = await fetch('/api/notes');
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                const data = await response.json();
-                setNotes(data);
-            } catch (err: any) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchNotes();
-    }, []);
-
-    const addNote = async (newNote: CreateNoteInput) => {
-        try {
-            const response = await fetch('/api/notes', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(newNote),
-            });
-            if (!response.ok) {
-                throw new Error('Failed to add note');
-            }
-            const addedNote = await response.json();
-            setNotes((prevNotes) => [...prevNotes, addedNote]);
-        } catch (err: any) {
-            setError(err.message);
-        }
-    };
-
-    const updateNote = async (id: string, updated: UpdateNoteInput) => {
-        try {
-            const response = await fetch(`/api/notes/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updated),
-            });
-            if (!response.ok) {
-                throw new Error('Failed to update note');
-            }
-            const note = await response.json();
-            setNotes((prev) => prev.map(n => n.id === id ? note : n));
-            if (selectedNote && selectedNote.id === id) {
-                setSelectedNote(note);
-            }
-        } catch (err: any) {
-            setError(err.message);
-        }
-    };
-
-    const deleteNote = async (noteId: string) => {
-        try {
-            const response = await fetch(`/api/notes/${noteId}`, {
-                method: 'DELETE',
-            });
-            if (!response.ok) {
-                throw new Error('Failed to delete note');
-            }
-            setNotes((prevNotes) => prevNotes.filter(note => note.id !== noteId));
-            if (selectedNote && selectedNote.id === noteId) {
-                setSelectedNote(null);
-            }
-        } catch (err: any) {
-            setError(err.message);
-        }
-    };
-
-    const selectNote = (note: Note) => {
-        setSelectedNote(note);
-    };
-
-
-    return { notes, selectedNote, loading, error, addNote, updateNote, deleteNote, selectNote };
+export type Note = {
+  id: string;
+  title: string;
+  content: string;
+  startAt?: string | null;
+  endAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
-// keep default for backwards compatibility
-export default useNotes;
+type CreateNotePayload = {
+  title: string;
+  content: string;
+  startAt?: string | null;
+  endAt?: string | null;
+};
+
+export function useNotes(options?: { autoFetch?: boolean }) {
+  const autoFetch = options?.autoFetch ?? true;
+
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [errMsg, setErrMsg] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    setErrMsg(null);
+    setLoading(true);
+    try {
+      const data = await apiFetchNotes();
+      const list = Array.isArray(data) ? data : data?.notes ?? [];
+      setNotes(list);
+    } catch (e: any) {
+      setErrMsg(e?.message ?? "讀取失敗");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const create = useCallback(
+    async (payload: CreateNotePayload) => {
+      setErrMsg(null);
+      setLoading(true);
+      try {
+        await apiCreateNote(payload as any);
+        // 建議：新增後直接重抓一次，避免前後端狀態不一致
+        await refresh();
+        return true;
+      } catch (e: any) {
+        setErrMsg(e?.message ?? "新增失敗");
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [refresh]
+  );
+
+  const remove = useCallback(async (id: string) => {
+    setErrMsg(null);
+    setLoading(true);
+    try {
+      await apiDeleteNote(id);
+      // 直接前端移除（更快），也可改成 await refresh()
+      setNotes((prev) => prev.filter((n) => n.id !== id));
+      return true;
+    } catch (e: any) {
+      setErrMsg(e?.message ?? "刪除失敗");
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // 自動載入
+  useEffect(() => {
+    if (autoFetch) refresh();
+  }, [autoFetch, refresh]);
+
+  return {
+    notes,
+    loading,
+    errMsg,
+    setErrMsg, // 讓 UI 需要時可清錯誤
+    refresh,
+    create,
+    remove,
+  };
+}

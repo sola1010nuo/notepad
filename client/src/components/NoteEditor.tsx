@@ -1,48 +1,67 @@
-import React, { useState, useEffect } from 'react';
+import React from "react";
 
-import { CreateNoteInput, UpdateNoteInput } from '../types';
+type Note = {
+  id: string;
+  title: string;
+  content: string;
+  updatedAt?: string; // 你如果有顯示更新時間就保留
+};
 
-interface NoteEditorProps {
-  addNote: (note: CreateNoteInput) => Promise<void>;
-  updateNote: (id: string, note: UpdateNoteInput) => Promise<void>;
-  selectedNote: { id: string; title: string; content: string } | null;
+interface NoteListProps {
+  notes: Note[];
+  deleteNote: (id: string) => Promise<void>; // 
 }
 
-const NoteEditor: React.FC<NoteEditorProps> = ({ addNote, updateNote, selectedNote }) => {
-  const [title, setTitle] = useState(selectedNote?.title || '');
-  const [content, setContent] = useState(selectedNote?.content || '');
-
-  useEffect(() => {
-    setTitle(selectedNote?.title || '');
-    setContent(selectedNote?.content || '');
-  }, [selectedNote]);
-
-  const handleSave = () => {
-    if (selectedNote) {
-      updateNote(selectedNote.id, { id: selectedNote.id, title, content });
-    } else {
-      addNote({ title, content });
-    }
-    setTitle('');
-    setContent('');
-  };
-
+const NoteList: React.FC<NoteListProps> = ({ notes, deleteNote }) => {
   return (
     <div>
-      <input
-        type="text"
-        placeholder="Note Title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-      />
-      <textarea
-        placeholder="Note Content"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-      />
-      <button onClick={handleSave}>Save Note</button>
+      {notes.map((note) => (
+        <div
+          key={note.id}
+          style={{
+            position: "relative",
+            border: "1px solid #ddd",
+            borderRadius: 8,
+            padding: 12,
+            marginBottom: 12,
+          }}
+        >
+          {/* ✅ 右上角叉叉 */}
+          <button
+            onClick={async (e) => {
+              e.stopPropagation(); // ✅ 防止觸發卡片點擊事件
+              const ok = window.confirm("確定要刪除這則筆記嗎？");
+              if (!ok) return;
+              await deleteNote(note.id);
+            }}
+            style={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              border: "none",
+              background: "transparent",
+              fontSize: 18,
+              cursor: "pointer",
+              lineHeight: 1,
+            }}
+            aria-label="delete note"
+            title="刪除"
+          >
+            ✕
+          </button>
+
+          <div style={{ fontWeight: 600 }}>{note.title}</div>
+          <div style={{ whiteSpace: "pre-wrap" }}>{note.content}</div>
+
+          {note.updatedAt && (
+            <div style={{ fontSize: 12, opacity: 0.7, marginTop: 8 }}>
+              更新：{note.updatedAt}
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 };
 
-export default NoteEditor;
+export default NoteList;

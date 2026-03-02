@@ -5,6 +5,7 @@ import {
   fetchNotes as apiFetchNotes,
   createNote as apiCreateNote,
   deleteNote as apiDeleteNote,
+  updateNote as apiUpdateNote,
 } from "../services/api";
 
 export type Note = {
@@ -13,6 +14,8 @@ export type Note = {
   content: string;
   startAt?: string | null;
   endAt?: string | null;
+  tag?: string | null;
+  remind?: number; // 0 或 1
   createdAt: string;
   updatedAt: string;
 };
@@ -22,6 +25,17 @@ type CreateNotePayload = {
   content: string;
   startAt?: string | null;
   endAt?: string | null;
+  tag?: string | null;
+  remind?: number; // 0 或 1
+};
+
+type UpdateNotePayload = {
+  title?: string;
+  content?: string;
+  startAt?: string | null;
+  endAt?: string | null;
+  tag?: string | null;
+  remind?: number; // 0 或 1
 };
 
 export function useNotes(options?: { autoFetch?: boolean }) {
@@ -64,6 +78,24 @@ export function useNotes(options?: { autoFetch?: boolean }) {
     [refresh]
   );
 
+  const update = useCallback(
+    async (id: string, payload: UpdateNotePayload) => {
+      setErrMsg(null);
+      setLoading(true);
+      try {
+        const updated = await apiUpdateNote(id, payload as any);
+        setNotes((prev) => prev.map((n) => (n.id === id ? updated : n)));
+        return true;
+      } catch (e: any) {
+        setErrMsg(e?.message ?? "更新失敗");
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
   const remove = useCallback(async (id: string) => {
     setErrMsg(null);
     setLoading(true);
@@ -91,6 +123,7 @@ export function useNotes(options?: { autoFetch?: boolean }) {
     errMsg,
     setErrMsg, // 讓 UI 需要時可清錯誤
     refresh,
+    update,
     create,
     remove,
   };

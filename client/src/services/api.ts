@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { CreateNoteInput, UpdateNoteInput, Note } from '../types';
+import { CreateNoteInput, UpdateNoteInput } from '../types';
 
 const API_BASE_URL = "/api";
 

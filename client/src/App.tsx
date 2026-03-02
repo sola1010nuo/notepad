@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import NoteModal from "./components/NoteModal";
+import NoteEditModal from "./components/NoteEditModal";
 import ThemeSwitch from "./components/ThemeSwitch";
 import { darkTheme, lightTheme } from "./styles/theme";
 import { useNotes } from "./hooks/useNotes";
@@ -7,23 +8,18 @@ import { useNoteForm } from "./hooks/useNoteForm";
 import TopActions from "./components/TopActions";
 import "./styles/nativeDateInput.css";
 import NotesList from "./components/NotesList";
+import type { Note } from "./hooks/useNotes";
 
-type Note = {
-  id: string;
-  title: string;
-  content: string;
-  startAt?: string | null;
-  endAt?: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
+
 
 export default function App() {
   const [dark, setDark] = useState(true);
-  const { notes, loading, errMsg, setErrMsg, refresh, create, remove } = useNotes();
+  const { notes, loading, errMsg, setErrMsg, refresh, create, update, remove } = useNotes();
   const [showModal, setShowModal] = useState(false);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
   const form = useNoteForm(showModal);
   const theme = dark ? darkTheme : lightTheme;
+  
 
   useEffect(() => {
     document.body.style.background = theme.bg;
@@ -52,17 +48,14 @@ export default function App() {
     await remove(id);
   }
 
-  // 共用 input style（目前沒用到就留著）
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    padding: 10,
-    background: theme.inputBg,
-    color: theme.text,
-    border: `1px solid ${theme.border}`,
-    borderRadius: 8,
-    boxSizing: "border-box",
-    minWidth: 0,
-  };
+  async function handleEditSave(id: string, data: any) {
+    const ok = await update(id, data);
+    if (ok) {
+      setEditingNote(null);
+    }
+  }
+
+
 
   return (
     <div
@@ -105,7 +98,7 @@ export default function App() {
       <h3 style={{ marginTop: 0 }}>目前筆記（{notes.length}）</h3>
 
       {/* NoteList */}
-      <NotesList notes={notes} theme={theme} dark={dark} onDelete={deleteNote} />
+      <NotesList notes={notes} theme={theme} dark={dark} onDelete={deleteNote} onEdit={setEditingNote} />
 
       {/* NoteModal */}
       <NoteModal
@@ -124,8 +117,22 @@ export default function App() {
         setEndDate={form.setEndDate}
         endTime={form.endTime}
         setEndTime={form.setEndTime}
+        tag={form.tag}
+        setTag={form.setTag}
+        remind={form.remind}
+        setRemind={form.setRemind}
         onClose={() => setShowModal(false)}
         onSave={createNoteFromModal}
+      />
+
+      {/* NoteEditModal */}
+      <NoteEditModal
+        open={!!editingNote}
+        theme={theme}
+        loading={loading}
+        note={editingNote}
+        onClose={() => setEditingNote(null)}
+        onSave={handleEditSave}
       />
     </div>
   );

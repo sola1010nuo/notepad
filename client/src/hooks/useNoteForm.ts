@@ -7,14 +7,21 @@ export type NoteFormState = {
   startTime: string;
   endDate: string;
   endTime: string;
+  tag: string;
+  remind: boolean;
 };
 
 // 將 date + time 合成 ISO 字串（任一缺就回傳 null）
 function combineToISO(dateStr: string, timeStr: string): string | null {
-  if (!dateStr || !timeStr) return null;
-  const dt = new Date(`${dateStr}T${timeStr}:00`); // 用本地時間組合
-  if (Number.isNaN(dt.getTime())) return null;
-  return dt.toISOString();
+  if (!dateStr) return null;
+  try {
+    const [year, month, day] = dateStr.split("-").map(Number);
+    const [hours, minutes] = (timeStr || "00:00").split(":").map(Number);
+    const dt = new Date(year, month - 1, day, hours, minutes);
+    return dt.toISOString();
+  } catch {
+    return null;
+  }
 }
 
 export function useNoteForm(open: boolean) {
@@ -25,6 +32,8 @@ export function useNoteForm(open: boolean) {
   const [startTime, setStartTime] = useState("");
   const [endDate, setEndDate] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [tag, setTag] = useState("");
+  const [remind, setRemind] = useState(false);
 
   // ✅ 每次打開 Modal 都重置（你原本 App 的 useEffect）
   useEffect(() => {
@@ -35,6 +44,8 @@ export function useNoteForm(open: boolean) {
     setStartTime("");
     setEndDate("");
     setEndTime("");
+    setTag("");
+    setRemind(false);
   }, [open]);
 
   // 組 payload（給 create 用）
@@ -47,8 +58,10 @@ export function useNoteForm(open: boolean) {
       content: content.trim(),
       startAt,
       endAt,
+      tag: tag.trim() || null,
+      remind: remind ? 1 : 0,
     };
-  }, [title, content, startDate, startTime, endDate, endTime]);
+  }, [title, content, startDate, startTime, endDate, endTime, tag, remind]);
 
   // 驗證：至少標題或內容要有一個
   function validate(): { ok: true } | { ok: false; message: string } {
@@ -72,6 +85,10 @@ export function useNoteForm(open: boolean) {
     setEndDate,
     endTime,
     setEndTime,
+    tag,
+    setTag,
+    remind,
+    setRemind,
 
     // helpers
     payload,

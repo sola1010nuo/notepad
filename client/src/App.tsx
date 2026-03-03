@@ -114,7 +114,10 @@ export default function App() {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", maxWidth: 1200, margin: "0 auto", marginBottom: 16 }}>
         <h2 style={{ margin: 0 }}>NotePad</h2>
-        <ThemeSwitch dark={dark} theme={theme} onToggle={() => setDark((v) => !v)} />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 18 }}>{dark ? "🌙" : "🔆"}</span>
+          <ThemeSwitch dark={dark} theme={theme} onToggle={() => setDark((v) => !v)} />
+        </div>
       </div>
 
       {/* Main Layout */}

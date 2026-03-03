@@ -46,7 +46,7 @@ export default function NotesList(props: NoteListProps) {
         <div
           key={n.id}
           onClick={() => {
-            if (!deleteMode) onEdit(n);
+            if (!deleteMode) onEdit(n); //刪除模式不會觸發編輯
           }}
           style={{
             border: `1px solid ${theme.border}`,

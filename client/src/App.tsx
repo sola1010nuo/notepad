@@ -15,7 +15,7 @@ import type { Note } from "./hooks/useNotes";
 
 export default function App() {
   const [dark, setDark] = useState(true);
-  const { notes, loading, errMsg, setErrMsg, refresh, create, update, remove } = useNotes();
+  const { notes, loading, errMsg, setErrMsg, create, update, remove } = useNotes();
   const [showModal, setShowModal] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -112,7 +112,6 @@ export default function App() {
               }
               setShowModal(true);
             }}
-            onRefresh={refresh}
           />
 
           {errMsg && (

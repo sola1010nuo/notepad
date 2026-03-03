@@ -19,6 +19,8 @@ export default function App() {
   const [showModal, setShowModal] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [deleteMode, setDeleteMode] = useState(false);
+  const [selectedForDelete, setSelectedForDelete] = useState<Set<string>>(new Set());
   const form = useNoteForm(showModal);
   const theme = dark ? darkTheme : lightTheme;
 
@@ -54,6 +56,33 @@ export default function App() {
     const ok = window.confirm("確定要刪除這則筆記嗎？");
     if (!ok) return;
     await remove(id);
+  }
+
+  function toggleDeleteMode() {
+    setDeleteMode((d) => {
+      if (d) setSelectedForDelete(new Set()); // exiting clear selections
+      return !d;
+    });
+  }
+
+  function handleSelect(id: string, checked: boolean) {
+    setSelectedForDelete((prev) => {
+      const s = new Set(prev);
+      if (checked) s.add(id);
+      else s.delete(id);
+      return s;
+    });
+  }
+
+  async function confirmBulkDelete() {
+    if (selectedForDelete.size === 0) return;
+    const ok = window.confirm(`確定刪除 ${selectedForDelete.size} 筆記？`);
+    if (!ok) return;
+    for (const id of selectedForDelete) {
+      await remove(id);
+    }
+    setSelectedForDelete(new Set());
+    setDeleteMode(false);
   }
 
   async function handleEditSave(id: string, data: any) {
@@ -112,6 +141,9 @@ export default function App() {
               }
               setShowModal(true);
             }}
+            deleteMode={deleteMode}
+            onToggleDelete={toggleDeleteMode}
+            onConfirmDelete={confirmBulkDelete}
           />
 
           {errMsg && (
@@ -126,7 +158,17 @@ export default function App() {
           </h3>
 
           {/* NoteList */}
-          <NotesList notes={filteredNotes} theme={theme} dark={dark} onDelete={deleteNote} onEdit={setEditingNote} onRemindToggle={handleRemindToggle} />
+          <NotesList
+            notes={filteredNotes}
+            theme={theme}
+            dark={dark}
+            onDelete={deleteNote}
+            onEdit={setEditingNote}
+            onRemindToggle={handleRemindToggle}
+            deleteMode={deleteMode}
+            selectedIds={selectedForDelete}
+            onSelect={handleSelect}
+          />
         </div>
       </div>
 

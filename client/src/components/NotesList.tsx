@@ -9,6 +9,10 @@ type NoteListProps = {
   onDelete: (id: string) => void;
   onEdit: (note: Note) => void;
   onRemindToggle?: (id: string, newRemind: number) => void;
+  // bulk-delete mode
+  deleteMode?: boolean;
+  selectedIds?: Set<string>;
+  onSelect?: (id: string, checked: boolean) => void;
 };
 
 // 安全格式化日期
@@ -30,7 +34,7 @@ const formatDateTime = (dateStr: string | null): string => {
 };
 
 export default function NotesList(props: NoteListProps) {
-  const { notes, theme, dark, onDelete, onEdit, onRemindToggle } = props;
+  const { notes, theme, dark, onDelete, onEdit, onRemindToggle, deleteMode, selectedIds, onSelect } = props;
 
   if (notes.length === 0) {
     return <div style={{ color: theme.muted }}>目前沒有筆記</div>;
@@ -41,7 +45,9 @@ export default function NotesList(props: NoteListProps) {
       {notes.map((n) => (
         <div
           key={n.id}
-          onClick={() => onEdit(n)}
+          onClick={() => {
+            if (!deleteMode) onEdit(n);
+          }}
           style={{
             border: `1px solid ${theme.border}`,
             background: theme.card,
@@ -52,33 +58,44 @@ export default function NotesList(props: NoteListProps) {
             transition: "all 0.2s",
           }}
         >
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(n.id);
-            }}
-            title="刪除"
-            aria-label="delete note"
-            style={{
-              position: "absolute",
-              top: 8,
-              right: 8,
-              zIndex: 2,
-              border: `1px solid ${theme.border}`,
-              background: dark ? "rgba(255,255,255,0.06)" : "transparent",
-              color: theme.text,
-              fontSize: 16,
-              cursor: "pointer",
-              lineHeight: 1,
-              padding: "2px 7px",
-              borderRadius: 999,
-            }}
-          >
-            ✕
-          </button>
+          {!deleteMode && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(n.id);
+              }}
+              title="刪除"
+              aria-label="delete note"
+              style={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+                zIndex: 2,
+                border: `1px solid ${theme.border}`,
+                background: dark ? "rgba(255,255,255,0.06)" : "transparent",
+                color: theme.text,
+                fontSize: 16,
+                cursor: "pointer",
+                lineHeight: 1,
+                padding: "2px 7px",
+                borderRadius: 999,
+              }}
+            >
+              ✕
+            </button>
+          )}
 
           <div style={{ fontWeight: 700, paddingRight: 34, marginBottom: 8 }}>
-            {n.title}
+            {deleteMode && (
+            <input
+              type="checkbox"
+              checked={selectedIds?.has(n.id) ?? false}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => onSelect?.(n.id, e.target.checked)}
+              style={{ marginRight: 8 }}
+            />
+          )}
+          {n.title}
           </div>
 
           {/* 時間範圍顯示 */}

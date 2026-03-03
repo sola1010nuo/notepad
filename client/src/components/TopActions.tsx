@@ -5,8 +5,11 @@ export default function TopActions(props: {
   theme: Theme;
   loading: boolean;
   onAdd: () => void;
+  deleteMode?: boolean;
+  onToggleDelete?: () => void;
+  onConfirmDelete?: () => void;
 }) {
-  const { theme, loading, onAdd } = props;
+  const { theme, loading, onAdd, deleteMode, onToggleDelete, onConfirmDelete } = props;
 
   const btnStyle: React.CSSProperties = {
     padding: "8px 12px",
@@ -22,6 +25,24 @@ export default function TopActions(props: {
       <button onClick={onAdd} disabled={loading} style={btnStyle}>
         ＋ 新增
       </button>
+      {typeof deleteMode !== "undefined" && onToggleDelete && (
+        <button
+          onClick={onToggleDelete}
+          disabled={loading}
+          style={btnStyle}
+        >
+          {deleteMode ? "取消" : "🗑️ 刪除"}
+        </button>
+      )}
+      {deleteMode && onConfirmDelete && (
+        <button
+          onClick={onConfirmDelete}
+          disabled={loading}
+          style={btnStyle}
+        >
+          確認刪除
+        </button>
+      )}
     </div>
   );
 }

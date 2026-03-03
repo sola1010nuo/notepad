@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import NoteModal from "./components/NoteModal";
 import NoteEditModal from "./components/NoteEditModal";
 import ThemeSwitch from "./components/ThemeSwitch";
+import Sidebar from "./components/Sidebar";
 import { darkTheme, lightTheme } from "./styles/theme";
 import { useNotes } from "./hooks/useNotes";
 import { useNoteForm } from "./hooks/useNoteForm";
@@ -17,8 +18,14 @@ export default function App() {
   const { notes, loading, errMsg, setErrMsg, refresh, create, update, remove } = useNotes();
   const [showModal, setShowModal] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const form = useNoteForm(showModal);
   const theme = dark ? darkTheme : lightTheme;
+
+
+  const allTags = Array.from(
+    new Set(notes.filter((n) => n.tag).map((n) => n.tag as string))
+  ).sort();
   
 
   useEffect(() => {
@@ -60,50 +67,69 @@ export default function App() {
     await update(id, { remind: newRemind });
   }
 
+  // 根據選中的標籤過濾筆記
+  const filteredNotes = selectedTag ? notes.filter((n) => n.tag === selectedTag) : notes;
+
 
 
   return (
     <div
       style={{
         padding: 16,
-        maxWidth: 900,
-        margin: "0 auto",
         fontFamily: "sans-serif",
         background: theme.panel,
         color: theme.text,
         minHeight: "100vh",
       }}
     >
-      
-
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", maxWidth: 1200, margin: "0 auto", marginBottom: 16 }}>
         <h2 style={{ margin: 0 }}>NotePad</h2>
         <ThemeSwitch dark={dark} theme={theme} onToggle={() => setDark((v) => !v)} />
       </div>
 
-      {/* Top Buttons */}
-      <TopActions
-        theme={theme}
-        loading={loading}
-        onAdd={() => {
-            setErrMsg(null);
-            setShowModal(true);
-        }}
-        onRefresh={refresh}
+      {/* Main Layout */}
+      <div style={{ display: "flex", gap: 20, maxWidth: 1200, margin: "0 auto" }}>
+        {/* Sidebar */}
+        <Sidebar
+          theme={theme}
+          allTags={allTags}
+          selectedTag={selectedTag}
+          onSelectTag={setSelectedTag}
         />
 
-      {errMsg && (
-        <div style={{ padding: 10, border: `1px solid ${theme.border}`, borderRadius: 8, marginBottom: 12 }}>
-          <b>錯誤：</b> {errMsg}
+        {/* Main Content */}
+        <div style={{ flex: 1 }}>
+          {/* Top Buttons */}
+          <TopActions
+            theme={theme}
+            loading={loading}
+            onAdd={() => {
+              setErrMsg(null);
+              // 標籤頁面按新增 自動設置
+              if (selectedTag) {
+                form.setTag(selectedTag);
+              }
+              setShowModal(true);
+            }}
+            onRefresh={refresh}
+          />
+
+          {errMsg && (
+            <div style={{ padding: 10, border: `1px solid ${theme.border}`, borderRadius: 8, marginBottom: 12 }}>
+              <b>錯誤：</b> {errMsg}
+            </div>
+          )}
+
+          {/* Notes */}
+          <h3 style={{ marginTop: 0 }}>
+            {selectedTag ? `標籤：${selectedTag}` : "全部筆記"}（{filteredNotes.length}）
+          </h3>
+
+          {/* NoteList */}
+          <NotesList notes={filteredNotes} theme={theme} dark={dark} onDelete={deleteNote} onEdit={setEditingNote} onRemindToggle={handleRemindToggle} />
         </div>
-      )}
-
-      {/* Notes */}
-      <h3 style={{ marginTop: 0 }}>目前筆記（{notes.length}）</h3>
-
-      {/* NoteList */}
-      <NotesList notes={notes} theme={theme} dark={dark} onDelete={deleteNote} onEdit={setEditingNote} onRemindToggle={handleRemindToggle} />
+      </div>
 
       {/* NoteModal */}
       <NoteModal

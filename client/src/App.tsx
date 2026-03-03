@@ -35,11 +35,15 @@ export default function App() {
     document.body.style.margin = "0";
   }, [theme.bg]);
 
-  // 每次打開 Modal 清掉錯誤
+  // 每次打開 Modal 清掉錯誤和設置標籤
   useEffect(() => {
     if (!showModal) return;
     setErrMsg(null);
-  }, [showModal, setErrMsg]);
+    // Modal 打開後，如果有選中的標籤就設置它
+    if (selectedTag) {
+      form.setTag(selectedTag);
+    }
+  }, [showModal, setErrMsg, selectedTag, form]);
 
   async function createNoteFromModal() {
     const v = form.validate();
@@ -138,10 +142,6 @@ export default function App() {
             loading={loading}
             onAdd={() => {
               setErrMsg(null);
-              // 標籤頁面按新增 自動設置
-              if (selectedTag) {
-                form.setTag(selectedTag);
-              }
               setShowModal(true);
             }}
             deleteMode={deleteMode}

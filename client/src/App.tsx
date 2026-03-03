@@ -26,6 +26,7 @@ export default function App() {
     document.body.style.margin = "0";
   }, [theme.bg]);
 
+  // 每次打開 Modal 清掉錯誤
   useEffect(() => {
     if (!showModal) return;
     setErrMsg(null);
@@ -53,6 +54,10 @@ export default function App() {
     if (ok) {
       setEditingNote(null);
     }
+  }
+
+  async function handleRemindToggle(id: string, newRemind: number) {
+    await update(id, { remind: newRemind });
   }
 
 
@@ -98,7 +103,7 @@ export default function App() {
       <h3 style={{ marginTop: 0 }}>目前筆記（{notes.length}）</h3>
 
       {/* NoteList */}
-      <NotesList notes={notes} theme={theme} dark={dark} onDelete={deleteNote} onEdit={setEditingNote} />
+      <NotesList notes={notes} theme={theme} dark={dark} onDelete={deleteNote} onEdit={setEditingNote} onRemindToggle={handleRemindToggle} />
 
       {/* NoteModal */}
       <NoteModal

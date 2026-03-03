@@ -8,6 +8,7 @@ type NoteListProps = {
   dark: boolean;
   onDelete: (id: string) => void;
   onEdit: (note: Note) => void;
+  onRemindToggle?: (id: string, newRemind: number) => void;
 };
 
 // 安全格式化日期
@@ -29,10 +30,10 @@ const formatDateTime = (dateStr: string | null): string => {
 };
 
 export default function NotesList(props: NoteListProps) {
-  const { notes, theme, dark, onDelete, onEdit } = props;
+  const { notes, theme, dark, onDelete, onEdit, onRemindToggle } = props;
 
   if (notes.length === 0) {
-    return <div style={{ color: theme.muted }}>目前沒有筆記（或 API 還沒通）</div>;
+    return <div style={{ color: theme.muted }}>目前沒有筆記</div>;
   }
 
   return (
@@ -99,7 +100,7 @@ export default function NotesList(props: NoteListProps) {
                     📅 開始：{formatDateTime(n.startAt)}
                   </div>
                   <div style={{ marginTop: 4 }}>
-                    ⏰ 結束：{formatDateTime(n.endAt)}
+                    ⏰ 期限：{formatDateTime(n.endAt)}
                   </div>
                 </>
               ) : n.startAt ? (
@@ -108,7 +109,7 @@ export default function NotesList(props: NoteListProps) {
                 </div>
               ) : n.endAt ? (
                 <div>
-                  ⏰ 結束：{formatDateTime(n.endAt)}
+                  ⏰ 期限：{formatDateTime(n.endAt)}
                 </div>
               ) : null}
             </div>
@@ -133,6 +134,7 @@ export default function NotesList(props: NoteListProps) {
               gap: 8,
               fontSize: 12,
               color: theme.muted,
+              alignItems: "center",
             }}
           >
             {n.tag && (
@@ -148,19 +150,46 @@ export default function NotesList(props: NoteListProps) {
                 🏷️ {n.tag}
               </span>
             )}
-            {n.remind === 1 && (
-              <span
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <span>🔔</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemindToggle?.(n.id, n.remind === 1 ? 0 : 1);
+                }}
+                aria-label="toggle remind"
                 style={{
-                  display: "inline-block",
-                  background: theme.inputBg,
-                  padding: "2px 8px",
-                  borderRadius: 12,
+                  width: 40,
+                  height: 20,
+                  borderRadius: 999,
                   border: `1px solid ${theme.border}`,
+                  background: n.remind === 1 ? "#f59e0b" : "transparent",
+                  position: "relative",
+                  cursor: "pointer",
+                  padding: 0,
                 }}
               >
-                🔔 提醒已啟用
-              </span>
-            )}
+                <span
+                  style={{
+                    position: "absolute",
+                    top: 2,
+                    left: n.remind === 1 ? 20 : 2,
+                    width: 16,
+                    height: 16,
+                    borderRadius: "50%",
+                    background: "#fff",
+                    transition: "left 0.18s ease",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                  }}
+                />
+              </button>
+            </div>
             {n.startAt && (
               <span
                 style={{

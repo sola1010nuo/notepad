@@ -219,7 +219,7 @@ export default function NoteEditModal(props: Props) {
             </div>
           </div>
 
-          {/* Tag 和 Remind */}
+          {/* Tag 和 Remind Switch */}
           <div
             style={{
               display: "grid",
@@ -243,26 +243,34 @@ export default function NoteEditModal(props: Props) {
               <div style={{ fontSize: 12, color: theme.muted, marginBottom: 6 }}>
                 提醒
               </div>
-              <label
+              <button
+                onClick={() => setRemind(!remind)}
+                aria-label="toggle remind"
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "8px 12px",
-                  background: theme.inputBg,
+                  width: 52,
+                  height: 28,
+                  borderRadius: 999,
                   border: `1px solid ${theme.border}`,
-                  borderRadius: 8,
+                  background: remind ? "#f59e0b" : "transparent",
+                  position: "relative",
                   cursor: "pointer",
+                  padding: 0,
                 }}
               >
-                <input
-                  type="checkbox"
-                  checked={remind}
-                  onChange={(e) => setRemind(e.target.checked)}
-                  style={{ cursor: "pointer" }}
+                <span
+                  style={{
+                    position: "absolute",
+                    top: 3,
+                    left: remind ? 26 : 3,
+                    width: 22,
+                    height: 22,
+                    borderRadius: "50%",
+                    background: "#fff",
+                    transition: "left 0.18s ease",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.4)",
+                  }}
                 />
-                <span>{remind ? "已啟用提醒" : "未啟用提醒"}</span>
-              </label>
+              </button>
             </div>
           </div>
 

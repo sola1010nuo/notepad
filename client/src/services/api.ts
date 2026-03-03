@@ -1,3 +1,4 @@
+// api.ts - 封裝所有與後端 API 互動的函式，統一處理錯誤
 import axios from 'axios';
 import { CreateNoteInput, UpdateNoteInput } from '../types';
 

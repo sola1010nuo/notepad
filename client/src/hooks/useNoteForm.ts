@@ -35,7 +35,7 @@ export function useNoteForm(open: boolean) {
   const [tag, setTag] = useState("");
   const [remind, setRemind] = useState(false);
 
-  // ✅ 每次打開 Modal 都重置（你原本 App 的 useEffect）
+  // 每次打開 Modal 都重置表單
   useEffect(() => {
     if (!open) return;
     setTitle("");

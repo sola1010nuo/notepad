@@ -149,7 +149,7 @@ export default function NoteModal(props: Props) {
             </div>
           </div>
 
-          {/* Tag 和 Remind */}
+          {/* Tag and Remind Switch */}
           <div
             style={{
               display: "grid",
@@ -170,26 +170,34 @@ export default function NoteModal(props: Props) {
 
             <div>
               <div style={{ fontSize: 12, color: theme.muted, marginBottom: 6 }}>提醒</div>
-              <label
+              <button
+                onClick={() => props.setRemind(!props.remind)}
+                aria-label="toggle remind"
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "8px 12px",
-                  background: theme.inputBg,
+                  width: 52,
+                  height: 28,
+                  borderRadius: 999,
                   border: `1px solid ${theme.border}`,
-                  borderRadius: 8,
+                  background: props.remind ? "#f59e0b" : "transparent",
+                  position: "relative",
                   cursor: "pointer",
+                  padding: 0,
                 }}
               >
-                <input
-                  type="checkbox"
-                  checked={props.remind}
-                  onChange={(e) => props.setRemind(e.target.checked)}
-                  style={{ cursor: "pointer" }}
+                <span
+                  style={{
+                    position: "absolute",
+                    top: 3,
+                    left: props.remind ? 26 : 3,
+                    width: 22,
+                    height: 22,
+                    borderRadius: "50%",
+                    background: "#fff",
+                    transition: "left 0.18s ease",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.4)",
+                  }}
                 />
-                <span>{props.remind ? "已啟用提醒" : "未啟用提醒"}</span>
-              </label>
+              </button>
             </div>
           </div>
 

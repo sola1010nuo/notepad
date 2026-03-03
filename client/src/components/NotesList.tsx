@@ -46,7 +46,13 @@ export default function NotesList(props: NoteListProps) {
         <div
           key={n.id}
           onClick={() => {
-            if (!deleteMode) onEdit(n); //刪除模式不會觸發編輯
+            if (deleteMode) {
+              // 删除模式：点击任何位置切换选中状态
+              onSelect?.(n.id, !selectedIds?.has(n.id));
+            } else {
+              // 编辑模式：打开编辑
+              onEdit(n);
+            }
           }}
           style={{
             border: `1px solid ${theme.border}`,

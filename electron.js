@@ -1,6 +1,10 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 
+app.disableHardwareAcceleration();
+app.commandLine.appendSwitch("no-proxy-server");
+app.commandLine.appendSwitch("proxy-auto-detect", "false");
+
 // during development we may load TypeScript files directly
 if (process.env.ELECTRON_START_URL) {
   try {
@@ -44,7 +48,11 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      enableRemoteModule: false,
+      sandbox: true,
+      preload: undefined,
     },
+    
   });
 
   const devUrl = process.env.ELECTRON_START_URL;
@@ -59,6 +67,7 @@ function createWindow() {
     win.loadFile(path.join(__dirname, "client", "build", "index.html"));
   }
 }
+
 
 app.whenReady().then(async () => {
   await startServer();

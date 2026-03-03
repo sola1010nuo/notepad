@@ -10,20 +10,27 @@ import TopActions from "./components/TopActions";
 import "./styles/nativeDateInput.css";
 import NotesList from "./components/NotesList";
 import type { Note } from "./hooks/useNotes";
+import ConfirmModal from "./components/ConfirmModal";
 
 
 
 export default function App() {
   const [dark, setDark] = useState(true);
-  const { notes, loading, errMsg, setErrMsg, create, update, remove } = useNotes();
+  const { notes, loading, errMsg, setErrMsg, create, update, remove, batchRemove } = useNotes();
   const [showModal, setShowModal] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [deleteMode, setDeleteMode] = useState(false);
   const [selectedForDelete, setSelectedForDelete] = useState<Set<string>>(new Set());
+  const [modalLoading, setModalLoading] = useState(false);
+  // confirm dialog state
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState("");
+  const [confirmAction, setConfirmAction] = useState<() => void>(() => () => {});
   const form = useNoteForm(showModal);
   const theme = dark ? darkTheme : lightTheme;
-
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [openBulkConfirm, setOpenBulkConfirm] = useState(false);
 
   const allTags = Array.from(
     new Set(notes.filter((n) => n.tag).map((n) => n.tag as string))
@@ -52,14 +59,14 @@ export default function App() {
       return;
     }
 
+    setModalLoading(true);
     const ok = await create(form.payload as any);
+    setModalLoading(false);
     if (ok) setShowModal(false);
   }
 
   async function deleteNote(id: string) {
-    const ok = window.confirm("確定要刪除這則筆記嗎？");
-    if (!ok) return;
-    await remove(id);
+     setConfirmDeleteId(id);
   }
 
   function toggleDeleteMode() {
@@ -79,18 +86,14 @@ export default function App() {
   }
 
   async function confirmBulkDelete() {
-    if (selectedForDelete.size === 0) return;
-    const ok = window.confirm(`確定刪除 ${selectedForDelete.size} 筆記？`);
-    if (!ok) return;
-    for (const id of selectedForDelete) {
-      await remove(id);
-    }
-    setSelectedForDelete(new Set());
-    setDeleteMode(false);
+     if (selectedForDelete.size === 0) return;
+  setOpenBulkConfirm(true);
   }
 
   async function handleEditSave(id: string, data: any) {
+    setModalLoading(true);
     const ok = await update(id, data);
+    setModalLoading(false);
     if (ok) {
       setEditingNote(null);
     }
@@ -177,9 +180,10 @@ export default function App() {
 
       {/* NoteModal */}
       <NoteModal
+        key={`modal-${showModal}`}
         open={showModal}
         theme={theme}
-        loading={loading}
+        loading={modalLoading}
         title={form.title}
         setTitle={form.setTitle}
         content={form.content}
@@ -202,13 +206,43 @@ export default function App() {
 
       {/* NoteEditModal */}
       <NoteEditModal
+        key={`edit-${editingNote?.id || 'none'}`}
         open={!!editingNote}
         theme={theme}
-        loading={loading}
+        loading={modalLoading}
         note={editingNote}
         onClose={() => setEditingNote(null)}
         onSave={handleEditSave}
       />
+
+      <ConfirmModal
+        open={openBulkConfirm}
+        theme={theme}
+        message={`確定刪除 ${selectedForDelete.size} 筆記？`}
+        onCancel={() => setOpenBulkConfirm(false)}
+        onConfirm={async () => {
+            const idsToDelete = Array.from(selectedForDelete);
+
+            //  建議用 batchRemove（useNotes 已經有），更快也更乾淨
+            await batchRemove(idsToDelete);
+
+            setSelectedForDelete(new Set());
+            setDeleteMode(false);
+            setOpenBulkConfirm(false);
+        }}
+    />
+
+      <ConfirmModal
+        open={!!confirmDeleteId}
+        theme={theme}
+        message="確定要刪除這則筆記嗎？"
+        onCancel={() => setConfirmDeleteId(null)}
+        onConfirm={async () => {
+            if (!confirmDeleteId) return;
+            await remove(confirmDeleteId);
+            setConfirmDeleteId(null);
+        }}
+        />
     </div>
   );
 }

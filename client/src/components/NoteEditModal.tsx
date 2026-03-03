@@ -100,11 +100,6 @@ export default function NoteEditModal(props: Props) {
 
   return (
     <div
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) {
-          props.onClose();
-        }
-      }}
       style={{
         position: "fixed",
         inset: 0,
@@ -117,7 +112,12 @@ export default function NoteEditModal(props: Props) {
       }}
     >
       <div
-        onMouseDown={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          // ESC 鍵關閉
+          if (e.key === "Escape") {
+            props.onClose();
+          }
+        }}
         style={{
           width: "min(720px, 100%)",
           background: theme.card,

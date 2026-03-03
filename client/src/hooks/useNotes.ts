@@ -97,8 +97,6 @@ export function useNotes(options?: { autoFetch?: boolean }) {
   );
 
   const remove = useCallback(async (id: string) => {
-    setErrMsg(null);
-    setLoading(true);
     try {
       await apiDeleteNote(id);
       // 直接前端移除（更快），也可改成 await refresh()
@@ -107,8 +105,20 @@ export function useNotes(options?: { autoFetch?: boolean }) {
     } catch (e: any) {
       setErrMsg(e?.message ?? "刪除失敗");
       return false;
-    } finally {
-      setLoading(false);
+    }
+  }, []);
+
+  // 批量刪除 - 不設置 loading，避免 Modal 被鎖定
+  const batchRemove = useCallback(async (ids: string[]) => {
+    try {
+      // 並行調用所有刪除請求
+      await Promise.all(ids.map(id => apiDeleteNote(id)));
+      // 一次性過濾所有已刪除的筆記
+      setNotes((prev) => prev.filter((n) => !ids.includes(n.id)));
+      return true;
+    } catch (e: any) {
+      setErrMsg(e?.message ?? "批量刪除失敗");
+      return false;
     }
   }, []);
 
@@ -126,5 +136,6 @@ export function useNotes(options?: { autoFetch?: boolean }) {
     update,
     create,
     remove,
+    batchRemove,
   };
 }

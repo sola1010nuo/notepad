@@ -39,13 +39,6 @@ export default function NoteModal(props: Props) {
 
   return (
     <div
-      onClick={props.onClose}
-      onMouseDown={(e) => {
-        // 只在點擊背景時關閉，不影響輸入框
-        if (e.target === e.currentTarget) {
-          props.onClose();
-        }
-      }}
       style={{
         position: "fixed",
         inset: 0,
@@ -58,8 +51,12 @@ export default function NoteModal(props: Props) {
       }}
     >
       <div
-        onClick={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          // ESC 鍵關閉
+          if (e.key === "Escape") {
+            props.onClose();
+          }
+        }}
         style={{
           width: "min(720px, 100%)",
           background: theme.card,

@@ -47,10 +47,10 @@ export default function NotesList(props: NoteListProps) {
           key={n.id}
           onClick={() => {
             if (deleteMode) {
-              // 删除模式：点击任何位置切换选中状态
+              // 删除模式
               onSelect?.(n.id, !selectedIds?.has(n.id));
             } else {
-              // 编辑模式：打开编辑
+              // 編輯模式
               onEdit(n);
             }
           }}
@@ -65,30 +65,80 @@ export default function NotesList(props: NoteListProps) {
           }}
         >
           {!deleteMode && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(n.id);
-              }}
-              title="刪除"
-              aria-label="delete note"
+            <div
               style={{
                 position: "absolute",
                 top: 8,
                 right: 8,
                 zIndex: 2,
-                border: `1px solid ${theme.border}`,
-                background: dark ? "rgba(255,255,255,0.06)" : "transparent",
-                color: theme.text,
-                fontSize: 16,
-                cursor: "pointer",
-                lineHeight: 1,
-                padding: "2px 7px",
-                borderRadius: 999,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
               }}
             >
-              ✕
-            </button>
+              {/* 提醒 switch */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                <span style={{ fontSize: 14 }}></span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemindToggle?.(n.id, n.remind === 1 ? 0 : 1);
+                  }}
+                  aria-label="toggle remind"
+                  style={{
+                    width: 40,
+                    height: 20,
+                    borderRadius: 999,
+                    border: `1px solid ${theme.border}`,
+                    background: n.remind === 1 ? "#f59e0b" : "transparent",
+                    position: "relative",
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                >
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: 2,
+                      left: n.remind === 1 ? 20 : 2,
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      background: "#fff",
+                      transition: "left 0.18s ease",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                    }}
+                  />
+                </button>
+              </div>
+              {/* 刪除按鈕 */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(n.id);
+                }}
+                title="刪除"
+                aria-label="delete note"
+                style={{
+                  border: `1px solid ${theme.border}`,
+                  background: dark ? "rgba(255,255,255,0.06)" : "transparent",
+                  color: theme.text,
+                  fontSize: 16,
+                  cursor: "pointer",
+                  lineHeight: 1,
+                  padding: "2px 7px",
+                  borderRadius: 999,
+                }}
+              >
+                ✕
+              </button>
+            </div>
           )}
 
           <div style={{ fontWeight: 700, paddingRight: 34, marginBottom: 8 }}>
@@ -104,39 +154,6 @@ export default function NotesList(props: NoteListProps) {
           {n.title}
           </div>
 
-          {/* 時間範圍顯示 */}
-          {(n.startAt || n.endAt) && (
-            <div
-              style={{
-                fontSize: 13,
-                color: theme.text,
-                marginBottom: 10,
-                padding: "8px 10px",
-                background: theme.inputBg,
-                borderRadius: 6,
-                border: `1px solid ${theme.border}`,
-              }}
-            >
-              {n.startAt && n.endAt ? (
-                <>
-                  <div>
-                    📅 開始：{formatDateTime(n.startAt)}
-                  </div>
-                  <div style={{ marginTop: 4 }}>
-                    ⏰ 期限：{formatDateTime(n.endAt)}
-                  </div>
-                </>
-              ) : n.startAt ? (
-                <div>
-                  📅 開始：{formatDateTime(n.startAt)}
-                </div>
-              ) : n.endAt ? (
-                <div>
-                  ⏰ 期限：{formatDateTime(n.endAt)}
-                </div>
-              ) : null}
-            </div>
-          )}
 
           <div
             style={{
@@ -173,84 +190,89 @@ export default function NotesList(props: NoteListProps) {
                 🏷️ {n.tag}
               </span>
             )}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
-              <span>🔔</span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemindToggle?.(n.id, n.remind === 1 ? 0 : 1);
-                }}
-                aria-label="toggle remind"
-                style={{
-                  width: 40,
-                  height: 20,
-                  borderRadius: 999,
-                  border: `1px solid ${theme.border}`,
-                  background: n.remind === 1 ? "#f59e0b" : "transparent",
-                  position: "relative",
-                  cursor: "pointer",
-                  padding: 0,
-                }}
-              >
+            {/* 時間為 12:00 視為沒設定，直接略過 */}
+            {n.startAt && (() => {
+              const dt = new Date(n.startAt);
+              const isPlaceholder = dt.getHours() === 12 && dt.getMinutes() === 0;
+              const dateOnly = dt.toLocaleDateString("zh-TW", {
+                month: "2-digit",
+                day: "2-digit",
+              });
+              if (isPlaceholder) {
+                return (
+                  <span
+                    style={{
+                      display: "inline-block",
+                      background: theme.inputBg,
+                      padding: "2px 8px",
+                      borderRadius: 12,
+                      border: `1px solid ${theme.border}`,
+                    }}
+                  >
+                    📅 {dateOnly}
+                  </span>
+                );
+              }
+              return (
                 <span
                   style={{
-                    position: "absolute",
-                    top: 2,
-                    left: n.remind === 1 ? 20 : 2,
-                    width: 16,
-                    height: 16,
-                    borderRadius: "50%",
-                    background: "#fff",
-                    transition: "left 0.18s ease",
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                    display: "inline-block",
+                    background: theme.inputBg,
+                    padding: "2px 8px",
+                    borderRadius: 12,
+                    border: `1px solid ${theme.border}`,
                   }}
-                />
-              </button>
-            </div>
-            {n.startAt && (
-              <span
-                style={{
-                  display: "inline-block",
-                  background: theme.inputBg,
-                  padding: "2px 8px",
-                  borderRadius: 12,
-                  border: `1px solid ${theme.border}`,
-                }}
-              >
-                📅{" "}
-                {new Date(n.startAt).toLocaleString("zh-TW", {
-                  month: "2-digit",
-                  day: "2-digit",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            )}
-            {n.endAt && (
-              <span
-                style={{
-                  display: "inline-block",
-                  background: theme.inputBg,
-                  padding: "2px 8px",
-                  borderRadius: 12,
-                  border: `1px solid ${theme.border}`,
-                }}
-              >
-                ⏰{" "}
-                {new Date(n.endAt).toLocaleString("zh-TW", {
-                  month: "2-digit",
-                  day: "2-digit",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            )}
+                >
+                  📅 {dt.toLocaleString("zh-TW", {
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              );
+            })()}
+            {n.endAt && (() => {
+              const dt = new Date(n.endAt);
+              const isPlaceholder = dt.getHours() === 12 && dt.getMinutes() === 0;
+              const dateOnly = dt.toLocaleDateString("zh-TW", {
+                month: "2-digit",
+                day: "2-digit",
+              });
+              if (isPlaceholder) {
+                return (
+                  <span
+                    style={{
+                      display: "inline-block",
+                      background: theme.inputBg,
+                      padding: "2px 8px",
+                      borderRadius: 12,
+                      border: `1px solid ${theme.border}`,
+                    }}
+                  >
+                    ⏰ {dateOnly}
+                  </span>
+                );
+              }
+              return (
+                <span
+                  style={{
+                    display: "inline-block",
+                    background: theme.inputBg,
+                    padding: "2px 8px",
+                    borderRadius: 12,
+                    border: `1px solid ${theme.border}`,
+                  }}
+                >
+                  ⏰ {dt.toLocaleString("zh-TW", {
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              );
+            })()}
           </div>
         </div>
       ))}

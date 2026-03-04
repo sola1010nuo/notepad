@@ -37,6 +37,21 @@ export default function NoteModal(props: Props) {
 
   if (!open) return null;
 
+  function toLocalDateTime(dateStr: string, timeStr: string): Date | null {
+  if (!dateStr) return null;               // 沒日期就不算
+  const t = timeStr && timeStr.trim() ? timeStr : "00:00"; // 沒時間就當 00:00
+  const dt = new Date(`${dateStr}T${t}:00`);
+  if (Number.isNaN(dt.getTime())) return null;
+  return dt;
+}
+
+function isStartAfterEnd(): boolean {
+  const s = toLocalDateTime(props.startDate, props.startTime);
+  const e = toLocalDateTime(props.endDate, props.endTime);
+  if (!s || !e) return false; // 任一邊沒有「日期」就不檢查
+  return s.getTime() > e.getTime();
+}
+
   return (
     <div
       style={{
@@ -214,8 +229,22 @@ export default function NoteModal(props: Props) {
             </button>
 
             <button
-              onClick={props.onSave}
-              disabled={loading}
+              onClick={() => {
+                console.log("SAVE CLICK", {
+                startDate: props.startDate,
+                startTime: props.startTime,
+                endDate: props.endDate,
+                endTime: props.endTime,
+                invalid: isStartAfterEnd(),
+                });
+
+                if (isStartAfterEnd()) {
+                window.alert("開始時間不能比結束時間晚");
+                return;
+                }
+                props.onSave();
+            }}
+            disabled={loading}
               style={{
                 padding: "8px 12px",
                 background: theme.btnBg,

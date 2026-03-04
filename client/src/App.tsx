@@ -160,7 +160,7 @@ export default function App() {
 
           {/* Notes */}
           <h3 style={{ marginTop: 0 }}>
-            {selectedTag ? `標籤：${selectedTag}` : "全部筆記"}（{filteredNotes.length}）
+            {selectedTag ? `標籤：${selectedTag}` : "全部"}（{filteredNotes.length}）
           </h3>
 
           {/* NoteList */}
@@ -215,15 +215,15 @@ export default function App() {
         onSave={handleEditSave}
       />
 
+        {/*批量刪除*/}
       <ConfirmModal
         open={openBulkConfirm}
         theme={theme}
-        message={`確定刪除 ${selectedForDelete.size} 筆記？`}
+        message={`確定刪除 ${selectedForDelete.size} ？`}
         onCancel={() => setOpenBulkConfirm(false)}
         onConfirm={async () => {
             const idsToDelete = Array.from(selectedForDelete);
 
-            //  建議用 batchRemove（useNotes 已經有），更快也更乾淨
             await batchRemove(idsToDelete);
 
             setSelectedForDelete(new Set());
@@ -231,11 +231,11 @@ export default function App() {
             setOpenBulkConfirm(false);
         }}
     />
-
+        {/* X 刪除 */}
       <ConfirmModal
         open={!!confirmDeleteId}
         theme={theme}
-        message="確定要刪除這則筆記嗎？"
+        message="確定刪除"
         onCancel={() => setConfirmDeleteId(null)}
         onConfirm={async () => {
             if (!confirmDeleteId) return;

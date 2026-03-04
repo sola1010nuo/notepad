@@ -14,6 +14,8 @@ export type NoteFormState = {
 // 將 date + time 合成 ISO 字串（任一缺就回傳 null）
 function combineToISO(dateStr: string, timeStr: string): string | null {
   if (!dateStr) return null;
+  // treat 12:00 as "not set" (HTML time blank shows 12:00 in some browsers)
+  if (timeStr === "12:00") return null;
   try {
     const [year, month, day] = dateStr.split("-").map(Number);
     const [hours, minutes] = (timeStr || "00:00").split(":").map(Number);

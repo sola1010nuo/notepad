@@ -26,7 +26,7 @@ export default function NoteEditModal(props: Props) {
   const [endDate, setEndDate] = useState("");
   const [endTime, setEndTime] = useState("");
 
-  // 当 note 改变时，更新表单
+  //  note 改變時，更新表單
   useEffect(() => {
     if (!note) return;
     setTitle(note.title || "");
@@ -34,17 +34,22 @@ export default function NoteEditModal(props: Props) {
     setTag(note.tag || "");
     setRemind(note.remind === 1);
 
-    // 解析时间 - 正确处理本地时间
+    // 把 ISO 字符串轉成本地日期和時間
     if (note.startAt) {
       const dt = new Date(note.startAt);
-      // 使用本地时间，不用 ISO 字符串
+      // 使用本地時間，不用 ISO 字符串
       const year = dt.getFullYear();
       const month = String(dt.getMonth() + 1).padStart(2, "0");
       const date = String(dt.getDate()).padStart(2, "0");
-      const hour = String(dt.getHours()).padStart(2, "0");
-      const minute = String(dt.getMinutes()).padStart(2, "0");
+      const hour = dt.getHours();
+      const minute = dt.getMinutes();
       setStartDate(`${year}-${month}-${date}`);
-      setStartTime(`${hour}:${minute}`);
+      // 如果時間是 12:00，當作沒設定
+      if (hour === 12 && minute === 0) {
+        setStartTime("");
+      } else {
+        setStartTime(`${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`);
+      }
     } else {
       setStartDate("");
       setStartTime("");
@@ -52,14 +57,18 @@ export default function NoteEditModal(props: Props) {
 
     if (note.endAt) {
       const dt = new Date(note.endAt);
-      // 使用本地时间，不用 ISO 字符串
+      // 使用本地時間，不用 ISO 字符串
       const year = dt.getFullYear();
       const month = String(dt.getMonth() + 1).padStart(2, "0");
       const date = String(dt.getDate()).padStart(2, "0");
-      const hour = String(dt.getHours()).padStart(2, "0");
-      const minute = String(dt.getMinutes()).padStart(2, "0");
+      const hour = dt.getHours();
+      const minute = dt.getMinutes();
       setEndDate(`${year}-${month}-${date}`);
-      setEndTime(`${hour}:${minute}`);
+      if (hour === 12 && minute === 0) {
+        setEndTime("");
+      } else {
+        setEndTime(`${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`);
+      }
     } else {
       setEndDate("");
       setEndTime("");
@@ -81,8 +90,8 @@ export default function NoteEditModal(props: Props) {
   const handleSave = async () => {
     if (!note) return;
 
-    const startAt = combineToISO(startDate, startTime);
-    const endAt = combineToISO(endDate, endTime);
+    const startAt = combineToISO(startDate, startTime || "");
+    const endAt = combineToISO(endDate, endTime || "");
 
     const payload = {
       title: title.trim() || "(無標題)",

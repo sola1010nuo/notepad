@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import type { Theme } from "../styles/theme";
 import { getInputStyle } from "../styles/ui";
 import type { Note } from "../hooks/useNotes";
@@ -26,7 +26,33 @@ export default function NoteEditModal(props: Props) {
   const [endDate, setEndDate] = useState("");
   const [endTime, setEndTime] = useState("");
 
-  //  note 改變時，更新表單
+  // ✅ inline 錯誤（避免 alert 造成卡輸入）
+  const [timeError, setTimeError] = useState("");
+
+  const safeClose = () => {
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    setTimeout(() => {
+      props.onClose();
+    }, 0);
+  };
+
+  // ✅ ESC anywhere (open 時有效)
+  useEffect(() => {
+    if (!open) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        safeClose();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // note 改變時，更新表單
   useEffect(() => {
     if (!note) return;
     setTitle(note.title || "");
@@ -34,22 +60,19 @@ export default function NoteEditModal(props: Props) {
     setTag(note.tag || "");
     setRemind(note.remind === 1);
 
-    // 把 ISO 字符串轉成本地日期和時間
+    // 清掉舊錯誤
+    setTimeError("");
+
     if (note.startAt) {
       const dt = new Date(note.startAt);
-      // 使用本地時間，不用 ISO 字符串
       const year = dt.getFullYear();
       const month = String(dt.getMonth() + 1).padStart(2, "0");
       const date = String(dt.getDate()).padStart(2, "0");
       const hour = dt.getHours();
       const minute = dt.getMinutes();
       setStartDate(`${year}-${month}-${date}`);
-      // 如果時間是 12:00，當作沒設定
-      if (hour === 12 && minute === 0) {
-        setStartTime("");
-      } else {
-        setStartTime(`${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`);
-      }
+      if (hour === 12 && minute === 0) setStartTime("");
+      else setStartTime(`${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`);
     } else {
       setStartDate("");
       setStartTime("");
@@ -57,18 +80,14 @@ export default function NoteEditModal(props: Props) {
 
     if (note.endAt) {
       const dt = new Date(note.endAt);
-      // 使用本地時間，不用 ISO 字符串
       const year = dt.getFullYear();
       const month = String(dt.getMonth() + 1).padStart(2, "0");
       const date = String(dt.getDate()).padStart(2, "0");
       const hour = dt.getHours();
       const minute = dt.getMinutes();
       setEndDate(`${year}-${month}-${date}`);
-      if (hour === 12 && minute === 0) {
-        setEndTime("");
-      } else {
-        setEndTime(`${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`);
-      }
+      if (hour === 12 && minute === 0) setEndTime("");
+      else setEndTime(`${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`);
     } else {
       setEndDate("");
       setEndTime("");
@@ -87,8 +106,29 @@ export default function NoteEditModal(props: Props) {
     }
   };
 
+  // ✅ 同新增：只要兩邊都有日期就比，時間沒填當 00:00
+  const invalidTime = useMemo(() => {
+    if (!startDate || !endDate) return false;
+    const s = new Date(`${startDate}T${startTime?.trim() ? startTime : "00:00"}:00`);
+    const e = new Date(`${endDate}T${endTime?.trim() ? endTime : "00:00"}:00`);
+    if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return false;
+    return s.getTime() > e.getTime();
+  }, [startDate, startTime, endDate, endTime]);
+
+  // ✅ 使用者改時間就清掉錯誤
+  useEffect(() => {
+    if (timeError) setTimeError("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, startTime, endDate, endTime]);
+
   const handleSave = async () => {
     if (!note) return;
+
+    // ✅ 防呆：不 alert，顯示 inline error
+    if (invalidTime) {
+      setTimeError("開始時間不能比結束時間晚");
+      return;
+    }
 
     const startAt = combineToISO(startDate, startTime || "");
     const endAt = combineToISO(endDate, endTime || "");
@@ -121,12 +161,6 @@ export default function NoteEditModal(props: Props) {
       }}
     >
       <div
-        onKeyDown={(e) => {
-          // ESC 鍵關閉
-          if (e.key === "Escape") {
-            props.onClose();
-          }
-        }}
         style={{
           width: "min(720px, 100%)",
           background: theme.card,
@@ -137,16 +171,13 @@ export default function NoteEditModal(props: Props) {
           overflowY: "auto",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h3 style={{ margin: 0 }}>編輯筆記</h3>
           <button
-            onClick={props.onClose}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              safeClose();
+            }}
             style={{
               border: `1px solid ${theme.border}`,
               background: "transparent",
@@ -161,12 +192,7 @@ export default function NoteEditModal(props: Props) {
         </div>
 
         <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="標題"
-            style={inputStyle}
-          />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="標題" style={inputStyle} />
 
           <textarea
             value={content}
@@ -184,74 +210,48 @@ export default function NoteEditModal(props: Props) {
             }}
           >
             <div>
-              <div style={{ fontSize: 12, color: theme.muted, marginBottom: 6 }}>
-                開始時間
-              </div>
+              <div style={{ fontSize: 12, color: theme.muted, marginBottom: 6 }}>開始時間</div>
               <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 8 }}>
-                <input
-                  className="hide-native-hint"
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  style={inputStyle}
-                />
-                <input
-                  className="hide-native-hint"
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  style={inputStyle}
-                />
+                <input className="hide-native-hint" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={inputStyle} />
+                <input className="hide-native-hint" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} style={inputStyle} />
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: 12, color: theme.muted, marginBottom: 6 }}>
-                結束時間
-              </div>
+              <div style={{ fontSize: 12, color: theme.muted, marginBottom: 6 }}>結束時間</div>
               <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 8 }}>
-                <input
-                  className="hide-native-hint"
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  style={inputStyle}
-                />
-                <input
-                  className="hide-native-hint"
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  style={inputStyle}
-                />
+                <input className="hide-native-hint" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={inputStyle} />
+                <input className="hide-native-hint" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} style={inputStyle} />
               </div>
             </div>
           </div>
 
+          {/* ✅ inline 錯誤訊息 */}
+          {!!timeError && (
+            <div
+              style={{
+                marginTop: 2,
+                padding: "8px 10px",
+                borderRadius: 8,
+                border: `1px solid ${theme.border}`,
+                background: "rgba(239, 68, 68, 0.12)",
+                color: theme.text,
+                fontSize: 13,
+              }}
+            >
+              {timeError}
+            </div>
+          )}
+
           {/* Tag 和 Remind Switch */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 10,
-            }}
-          >
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
-              <div style={{ fontSize: 12, color: theme.muted, marginBottom: 6 }}>
-                標籤
-              </div>
-              <input
-                value={tag}
-                onChange={(e) => setTag(e.target.value)}
-                placeholder="例: 工作、學習、生活"
-                style={inputStyle}
-              />
+              <div style={{ fontSize: 12, color: theme.muted, marginBottom: 6 }}>標籤</div>
+              <input value={tag} onChange={(e) => setTag(e.target.value)} placeholder="例: 工作、學習、生活" style={inputStyle} />
             </div>
 
             <div>
-              <div style={{ fontSize: 12, color: theme.muted, marginBottom: 6 }}>
-                提醒
-              </div>
+              <div style={{ fontSize: 12, color: theme.muted, marginBottom: 6 }}>提醒</div>
               <button
                 onClick={() => setRemind(!remind)}
                 aria-label="toggle remind"
@@ -283,11 +283,12 @@ export default function NoteEditModal(props: Props) {
             </div>
           </div>
 
-          <div
-            style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12 }}
-          >
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12 }}>
             <button
-              onClick={props.onClose}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                safeClose();
+              }}
               style={{
                 padding: "8px 12px",
                 background: "transparent",

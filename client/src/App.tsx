@@ -11,6 +11,7 @@ import "./styles/nativeDateInput.css";
 import NotesList from "./components/NotesList";
 import type { Note } from "./hooks/useNotes";
 import ConfirmModal from "./components/ConfirmModal";
+import { getInputStyle } from "./styles/ui";
 
 
 
@@ -20,6 +21,7 @@ export default function App() {
   const [showModal, setShowModal] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const [deleteMode, setDeleteMode] = useState(false);
   const [selectedForDelete, setSelectedForDelete] = useState<Set<string>>(new Set());
   const [modalLoading, setModalLoading] = useState(false);
@@ -103,8 +105,17 @@ export default function App() {
     await update(id, { remind: newRemind });
   }
 
-  // 根據選中的標籤過濾筆記
-  const filteredNotes = selectedTag ? notes.filter((n) => n.tag === selectedTag) : notes;
+  // 搜尋筆記（標題或內容包含搜尋字串，且符合選擇的標籤）
+  const filteredNotes = notes.filter((n) => {
+    // tag filter first
+    if (selectedTag && n.tag !== selectedTag) return false;
+    // search filter (case‑insensitive)
+    const txt = searchTerm.trim().toLowerCase();
+    if (!txt) return true;
+    if (n.title.toLowerCase().includes(txt)) return true;
+    if (n.content.toLowerCase().includes(txt)) return true;
+    return false;
+  });
 
 
 
@@ -159,6 +170,16 @@ export default function App() {
           )}
 
           {/* Notes */}
+          {/* search box */}
+          <div style={{ marginBottom: 8 }}>
+            <input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="搜尋標題或內容"
+              style={getInputStyle(theme)}
+            />
+          </div>
+
           <h3 style={{ marginTop: 0 }}>
             {selectedTag ? `標籤：${selectedTag}` : "全部"}（{filteredNotes.length}）
           </h3>

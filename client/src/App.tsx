@@ -80,13 +80,44 @@ export default function App() {
     localStorage.setItem("remindAdvanceMinutes", remindAdvanceMinutes.toString());
   }, [remindAdvanceMinutes]);
 
+
+  ///
+useEffect(() => {
+  console.log("[Renderer] remindAdvanceMinutes =", remindAdvanceMinutes);
+  console.log(
+    "[Renderer] notes =",
+    notes.map((n) => ({
+      id: n.id,
+      title: n.title,
+      startAt: n.startAt,
+      endAt: n.endAt,
+    }))
+  );
+
+  if (!window.electronAPI?.updateReminders) return;
+
+  window.electronAPI
+    .updateReminders({
+      notes,
+      remindAdvanceMinutes,
+    })
+    .then(() => {
+      console.log("[Renderer] reminders synced");
+    })
+    .catch((err) => {
+      console.error("[Renderer] failed to sync reminders:", err);
+    });
+}, [notes, remindAdvanceMinutes]);
+///
+
+
+    ///
   async function createNoteFromModal() {
     const v = form.validate();
     if (!v.ok) {
       setErrMsg(v.message);
       return;
     }
-
     setModalLoading(true);
     const ok = await create(form.payload as any);
     setModalLoading(false);
@@ -125,9 +156,10 @@ export default function App() {
     setModalLoading(false);
 
     if (ok) {
-      setEditingNote(null);
+        await window.electronAPI?.resetReminder(id);
+        setEditingNote(null);
     }
-  }
+}
 
   async function handleRemindToggle(id: string, newRemind: number) {
     await update(id, { remind: newRemind });
@@ -272,7 +304,6 @@ export default function App() {
         onConfirm={async () => {
           const idsToDelete = Array.from(selectedForDelete);
           await batchRemove(idsToDelete);
-
           setSelectedForDelete(new Set());
           setDeleteMode(false);
           setOpenBulkConfirm(false);
@@ -303,5 +334,8 @@ export default function App() {
         onClose={() => setShowSettingsModal(false)}
       />
     </div>
+
+        
+
   );
 }

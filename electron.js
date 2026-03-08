@@ -1,5 +1,6 @@
-const { app, BrowserWindow } = require('electron');
-const path = require('path');
+const { app, BrowserWindow, ipcMain } = require("electron");
+const path = require("path");
+const reminderManager = require("./reminderManager");
 
 app.disableHardwareAcceleration();
 app.commandLine.appendSwitch("no-proxy-server");
@@ -49,15 +50,15 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       enableRemoteModule: false,
-      sandbox: true,
-      preload: undefined,
+      sandbox: false,
+      preload: path.join(__dirname, "preload.js"),
     },
     
   });
 
   const devUrl = process.env.ELECTRON_START_URL;
 
-  // 🔎 先印出來，確認 Electron 真的有拿到 env（超重要）
+  // 先印出來，確認 Electron 真的有拿到 env
   console.log("ELECTRON_START_URL =", devUrl);
 
   if (devUrl) {
@@ -68,10 +69,29 @@ function createWindow() {
   }
 }
 
+if (process.platform === "win32") {
+  app.setAppUserModelId(process.execPath);
+}
 
 app.whenReady().then(async () => {
   await startServer();
   createWindow();
+
+  ipcMain.handle("reminder:update-all", async (_event, payload) => {
+    const { notes, remindAdvanceMinutes } = payload || {};
+    reminderManager.updateAll(notes, remindAdvanceMinutes);
+    return { ok: true };
+  });
+
+  ipcMain.handle("reminder:reset-one", async (_event, noteId) => {
+    reminderManager.resetNotified(noteId);
+    return { ok: true };
+  });
+
+  ipcMain.handle("reminder:remove-one", async (_event, noteId) => {
+    reminderManager.removeNote(noteId);
+    return { ok: true };
+  });
 });
 
 app.on('window-all-closed', () => {

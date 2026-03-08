@@ -35,7 +35,7 @@ export default function NoteModal(props: Props) {
   const { open, theme, loading } = props;
   const inputStyle = getInputStyle(theme);
 
-  // ✅ 不用 alert：用 state 顯示錯誤
+  //  用 state 顯示錯誤
   const [timeError, setTimeError] = useState<string>("");
 
   function toLocalDateTime(dateStr: string, timeStr: string): Date | null {

@@ -12,6 +12,7 @@ import NotesList from "./components/NotesList";
 import type { Note } from "./hooks/useNotes";
 import ConfirmModal from "./components/ConfirmModal";
 import { getInputStyle } from "./styles/ui";
+import SettingsModal from "./components/SettingsModal";
 
 
 
@@ -33,6 +34,7 @@ export default function App() {
   const theme = dark ? darkTheme : lightTheme;
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [openBulkConfirm, setOpenBulkConfirm] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   const allTags = Array.from(
     new Set(notes.filter((n) => n.tag).map((n) => n.tag as string))
@@ -131,7 +133,24 @@ export default function App() {
     >
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", maxWidth: 1200, margin: "0 auto", marginBottom: 16 }}>
-        <h2 style={{ margin: 0 }}>NotePad</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <h2 style={{ margin: 0 }}>NotePad</h2>
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            style={{
+              border: `1px solid ${theme.border}`,
+              background: "transparent",
+              color: theme.text,
+              borderRadius: 4,
+              padding: "4px 8px",
+              cursor: "pointer",
+              fontSize: 16,
+            }}
+            title="設定"
+          >
+            ⚙️
+          </button>
+        </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 18 }}>{dark ? "🌙" : "🔆"}</span>
           <ThemeSwitch dark={dark} theme={theme} onToggle={() => setDark((v) => !v)} />
@@ -264,6 +283,15 @@ export default function App() {
             setConfirmDeleteId(null);
         }}
         />
+
+      {/* Settings Modal */}
+      <SettingsModal
+        open={showSettingsModal}
+        theme={theme}
+        dark={dark}
+        setDark={setDark}
+        onClose={() => setShowSettingsModal(false)}
+      />
     </div>
   );
 }

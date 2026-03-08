@@ -14,11 +14,30 @@ import ConfirmModal from "./components/ConfirmModal";
 import { getInputStyle } from "./styles/ui";
 import SettingsModal from "./components/SettingsModal";
 
+function getInitialRemindAdvanceMinutes() {
+  const saved = localStorage.getItem("remindAdvanceMinutes");
+  const parsed = Number(saved);
 
+  if (!Number.isNaN(parsed) && parsed >= 0) {
+    return parsed;
+  }
+
+  return 30; // 預設 30 分鐘
+}
 
 export default function App() {
   const [dark, setDark] = useState(true);
-  const { notes, loading, errMsg, setErrMsg, create, update, remove, batchRemove } = useNotes();
+  const {
+    notes,
+    loading,
+    errMsg,
+    setErrMsg,
+    create,
+    update,
+    remove,
+    batchRemove,
+  } = useNotes();
+
   const [showModal, setShowModal] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -26,35 +45,40 @@ export default function App() {
   const [deleteMode, setDeleteMode] = useState(false);
   const [selectedForDelete, setSelectedForDelete] = useState<Set<string>>(new Set());
   const [modalLoading, setModalLoading] = useState(false);
-  // confirm dialog state
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmMessage, setConfirmMessage] = useState("");
-  const [confirmAction, setConfirmAction] = useState<() => void>(() => () => {});
+
   const form = useNoteForm(showModal);
   const theme = dark ? darkTheme : lightTheme;
+
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [openBulkConfirm, setOpenBulkConfirm] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
+  const [remindAdvanceMinutes, setRemindAdvanceMinutes] = useState<number>(
+    getInitialRemindAdvanceMinutes
+  );
+
   const allTags = Array.from(
     new Set(notes.filter((n) => n.tag).map((n) => n.tag as string))
   ).sort();
-  
 
   useEffect(() => {
     document.body.style.background = theme.bg;
     document.body.style.margin = "0";
   }, [theme.bg]);
 
-  // 每次打開 Modal 清掉錯誤和設置標籤
+  // 每次打開新增 Modal 清掉錯誤，並帶入目前選中的 tag
   useEffect(() => {
     if (!showModal) return;
     setErrMsg(null);
-    // Modal 打開後，如果有選中的標籤就設置它
     if (selectedTag) {
       form.setTag(selectedTag);
     }
   }, [showModal, setErrMsg, selectedTag, form]);
+
+  // 記住全域提醒提前時間
+  useEffect(() => {
+    localStorage.setItem("remindAdvanceMinutes", remindAdvanceMinutes.toString());
+  }, [remindAdvanceMinutes]);
 
   async function createNoteFromModal() {
     const v = form.validate();
@@ -66,16 +90,17 @@ export default function App() {
     setModalLoading(true);
     const ok = await create(form.payload as any);
     setModalLoading(false);
+
     if (ok) setShowModal(false);
   }
 
   async function deleteNote(id: string) {
-     setConfirmDeleteId(id);
+    setConfirmDeleteId(id);
   }
 
   function toggleDeleteMode() {
     setDeleteMode((d) => {
-      if (d) setSelectedForDelete(new Set()); // exiting clear selections
+      if (d) setSelectedForDelete(new Set());
       return !d;
     });
   }
@@ -90,14 +115,15 @@ export default function App() {
   }
 
   async function confirmBulkDelete() {
-     if (selectedForDelete.size === 0) return;
-  setOpenBulkConfirm(true);
+    if (selectedForDelete.size === 0) return;
+    setOpenBulkConfirm(true);
   }
 
   async function handleEditSave(id: string, data: any) {
     setModalLoading(true);
     const ok = await update(id, data);
     setModalLoading(false);
+
     if (ok) {
       setEditingNote(null);
     }
@@ -109,17 +135,15 @@ export default function App() {
 
   // 搜尋筆記（標題或內容包含搜尋字串，且符合選擇的標籤）
   const filteredNotes = notes.filter((n) => {
-    // tag filter first
     if (selectedTag && n.tag !== selectedTag) return false;
-    // search filter (case‑insensitive)
+
     const txt = searchTerm.trim().toLowerCase();
     if (!txt) return true;
     if (n.title.toLowerCase().includes(txt)) return true;
     if (n.content.toLowerCase().includes(txt)) return true;
+
     return false;
   });
-
-
 
   return (
     <div
@@ -132,7 +156,16 @@ export default function App() {
       }}
     >
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", maxWidth: 1200, margin: "0 auto", marginBottom: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          maxWidth: 1200,
+          margin: "0 auto",
+          marginBottom: 16,
+        }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <h2 style={{ margin: 0 }}>NotePad</h2>
           <button
@@ -151,9 +184,14 @@ export default function App() {
             ⚙️
           </button>
         </div>
+
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 18 }}>{dark ? "🌙" : "🔆"}</span>
-          <ThemeSwitch dark={dark} theme={theme} onToggle={() => setDark((v) => !v)} />
+          <ThemeSwitch
+            dark={dark}
+            theme={theme}
+            onToggle={() => setDark((v) => !v)}
+          />
         </div>
       </div>
 
@@ -169,7 +207,6 @@ export default function App() {
 
         {/* Main Content */}
         <div style={{ flex: 1 }}>
-          {/* Top Buttons */}
           <TopActions
             theme={theme}
             loading={loading}
@@ -183,12 +220,18 @@ export default function App() {
           />
 
           {errMsg && (
-            <div style={{ padding: 10, border: `1px solid ${theme.border}`, borderRadius: 8, marginBottom: 12 }}>
+            <div
+              style={{
+                padding: 10,
+                border: `1px solid ${theme.border}`,
+                borderRadius: 8,
+                marginBottom: 12,
+              }}
+            >
               <b>錯誤：</b> {errMsg}
             </div>
           )}
 
-          {/* Notes */}
           {/* search box */}
           <div style={{ marginBottom: 8 }}>
             <input
@@ -203,7 +246,6 @@ export default function App() {
             {selectedTag ? `標籤：${selectedTag}` : "全部"}（{filteredNotes.length}）
           </h3>
 
-          {/* NoteList */}
           <NotesList
             notes={filteredNotes}
             theme={theme}
@@ -218,7 +260,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* NoteModal */}
+      {/* 新增筆記 Modal */}
       <NoteModal
         key={`modal-${showModal}`}
         open={showModal}
@@ -244,9 +286,9 @@ export default function App() {
         onSave={createNoteFromModal}
       />
 
-      {/* NoteEditModal */}
+      {/* 編輯筆記 Modal */}
       <NoteEditModal
-        key={`edit-${editingNote?.id || 'none'}`}
+        key={`edit-${editingNote?.id || "none"}`}
         open={!!editingNote}
         theme={theme}
         loading={modalLoading}
@@ -255,34 +297,34 @@ export default function App() {
         onSave={handleEditSave}
       />
 
-        {/*批量刪除*/}
+      {/* 批量刪除確認 */}
       <ConfirmModal
         open={openBulkConfirm}
         theme={theme}
-        message={`確定刪除 ${selectedForDelete.size} ？`}
+        message={`確定刪除 ${selectedForDelete.size} 筆？`}
         onCancel={() => setOpenBulkConfirm(false)}
         onConfirm={async () => {
-            const idsToDelete = Array.from(selectedForDelete);
+          const idsToDelete = Array.from(selectedForDelete);
+          await batchRemove(idsToDelete);
 
-            await batchRemove(idsToDelete);
-
-            setSelectedForDelete(new Set());
-            setDeleteMode(false);
-            setOpenBulkConfirm(false);
+          setSelectedForDelete(new Set());
+          setDeleteMode(false);
+          setOpenBulkConfirm(false);
         }}
-    />
-        {/* X 刪除 */}
+      />
+
+      {/* 單筆刪除確認 */}
       <ConfirmModal
         open={!!confirmDeleteId}
         theme={theme}
-        message="確定刪除"
+        message="確定刪除？"
         onCancel={() => setConfirmDeleteId(null)}
         onConfirm={async () => {
-            if (!confirmDeleteId) return;
-            await remove(confirmDeleteId);
-            setConfirmDeleteId(null);
+          if (!confirmDeleteId) return;
+          await remove(confirmDeleteId);
+          setConfirmDeleteId(null);
         }}
-        />
+      />
 
       {/* Settings Modal */}
       <SettingsModal
@@ -290,6 +332,8 @@ export default function App() {
         theme={theme}
         dark={dark}
         setDark={setDark}
+        remindAdvanceMinutes={remindAdvanceMinutes}
+        setRemindAdvanceMinutes={setRemindAdvanceMinutes}
         onClose={() => setShowSettingsModal(false)}
       />
     </div>

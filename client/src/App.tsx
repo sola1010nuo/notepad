@@ -10,9 +10,9 @@ import "./styles/nativeDateInput.css";
 import NotesList from "./components/NotesList";
 import type { Note } from "./hooks/useNotes";
 import ConfirmModal from "./components/ConfirmModal";
-import { getInputStyle } from "./styles/ui";
 import SettingsModal from "./components/SettingsModal";
 import AppHeader from "./components/AppHeader";
+import SearchBox from "./components/SearchBox";
 
 function getInitialRemindAdvanceMinutes() {
   const saved = localStorage.getItem("remindAdvanceMinutes");
@@ -202,14 +202,11 @@ export default function App() {
           )}
 
           {/* search box */}
-          <div style={{ marginBottom: 8 }}>
-            <input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="搜尋標題或內容"
-              style={getInputStyle(theme)}
+         <SearchBox
+            theme={theme}
+            value={searchTerm}
+            onChange={setSearchTerm}
             />
-          </div>
 
           <h3 style={{ marginTop: 0 }}>
             {selectedTag ? `標籤：${selectedTag}` : "全部"}（{filteredNotes.length}）

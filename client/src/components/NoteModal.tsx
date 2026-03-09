@@ -35,7 +35,6 @@ export default function NoteModal(props: Props) {
   const { open, theme, loading } = props;
   const inputStyle = getInputStyle(theme);
 
-  //  用 state 顯示錯誤
   const [timeError, setTimeError] = useState<string>("");
 
   function toLocalDateTime(dateStr: string, timeStr: string): Date | null {
@@ -53,7 +52,6 @@ export default function NoteModal(props: Props) {
     return s.getTime() > e.getTime();
   }, [props.startDate, props.startTime, props.endDate, props.endTime]);
 
-  // 使用者只要修改時間，就把錯誤清掉
   useEffect(() => {
     if (timeError) setTimeError("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -64,7 +62,6 @@ export default function NoteModal(props: Props) {
     setTimeout(() => props.onClose(), 0);
   };
 
-  // ESC 關閉
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -103,7 +100,13 @@ export default function NoteModal(props: Props) {
         }}
       >
         {/* header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <h3 style={{ margin: 0 }}>新增筆記</h3>
           <button
             onMouseDown={(e) => {
@@ -148,7 +151,9 @@ export default function NoteModal(props: Props) {
             }}
           >
             <div>
-              <div style={{ fontSize: 12, color: theme.muted, marginBottom: 6 }}>開始時間</div>
+              <div style={{ fontSize: 12, color: theme.muted, marginBottom: 6 }}>
+                開始時間
+              </div>
               <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 8 }}>
                 <input
                   className="hide-native-hint"
@@ -168,7 +173,9 @@ export default function NoteModal(props: Props) {
             </div>
 
             <div>
-              <div style={{ fontSize: 12, color: theme.muted, marginBottom: 6 }}>結束時間</div>
+              <div style={{ fontSize: 12, color: theme.muted, marginBottom: 6 }}>
+                結束時間
+              </div>
               <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 8 }}>
                 <input
                   className="hide-native-hint"
@@ -188,7 +195,6 @@ export default function NoteModal(props: Props) {
             </div>
           </div>
 
-          {/*  錯誤訊息 */}
           {!!timeError && (
             <div
               style={{
@@ -205,7 +211,66 @@ export default function NoteModal(props: Props) {
             </div>
           )}
 
-          {/* Tag + Remind ...（你原本的保持不變） */}
+          {/* 標籤 + 提醒 */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+              gap: 10,
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 12, color: theme.muted, marginBottom: 6 }}>標籤</div>
+              <input
+                value={props.tag}
+                onChange={(e) => props.setTag(e.target.value)}
+                placeholder="例: 工作、學習、生活"
+                style={inputStyle}
+              />
+            </div>
+
+            <div>
+              <div style={{ fontSize: 12, color: theme.muted, marginBottom: 6 }}>提醒</div>
+              <label
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  cursor: "pointer",
+                  height: 42,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={props.remind}
+                  onChange={(e) => props.setRemind(e.target.checked)}
+                  style={{ display: "none" }}
+                />
+                <div
+                  style={{
+                    width: 46,
+                    height: 26,
+                    borderRadius: 999,
+                    background: props.remind ? "#f5a623" : theme.border,
+                    position: "relative",
+                    transition: "0.2s",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: "50%",
+                      background: "#fff",
+                      position: "absolute",
+                      top: 2,
+                      left: props.remind ? 22 : 2,
+                      transition: "0.2s",
+                    }}
+                  />
+                </div>
+              </label>
+            </div>
+          </div>
 
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12 }}>
             <button

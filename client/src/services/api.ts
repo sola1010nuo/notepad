@@ -2,7 +2,7 @@
 import axios from "axios";
 import { CreateNoteInput, UpdateNoteInput } from "../types";
 
-// ✅ Electron build 時是 file://，沒有 CRA proxy，所以要改成打 localhost:5000
+// Electron build 時是 file://，沒有 CRA proxy，所以要改成打 localhost:5000
 function getApiBaseUrl() {
   if (typeof window !== "undefined" && window.location.protocol === "file:") {
     return "http://localhost:5000/api"; // ← 你的 Express PORT（預設 5000）

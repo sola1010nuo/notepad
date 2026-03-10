@@ -52,6 +52,7 @@ export default function App() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [openBulkConfirm, setOpenBulkConfirm] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [openExpiredDeleteConfirm, setOpenExpiredDeleteConfirm] = useState(false);
 
   const [remindAdvanceMinutes, setRemindAdvanceMinutes] = useState<number>(
     getInitialRemindAdvanceMinutes
@@ -146,6 +147,11 @@ export default function App() {
   async function confirmBulkDelete() {
     if (selectedForDelete.size === 0) return;
     setOpenBulkConfirm(true);
+  }
+
+  function handleDeleteExpiredNotes() {
+    if (expiredNotes.length === 0) return;
+    setOpenExpiredDeleteConfirm(true);
   }
 
   async function handleEditSave(id: string, data: any) {
@@ -264,31 +270,57 @@ export default function App() {
           </h3>
 
            {/* 已過期的記事本 */}
-          <div style={{ marginBottom: 24 }}>
-            <h4
-              style={{
-                margin: "0 0 10px 0",
-                color: theme.text,
-                borderLeft: "4px solid #ef4444",
-                paddingLeft: 10,
-              }}
-            >
-              已過期（{expiredNotes.length}）
-            </h4>
+            {expiredNotes.length > 0 && (
+            <div style={{ marginBottom: 24 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  marginBottom: 10,
+                }}
+              >
+                <h4
+                  style={{
+                    margin: 0,
+                    color: theme.text,
+                    borderLeft: "4px solid #ef4444",
+                    paddingLeft: 10,
+                  }}
+                >
+                  已過期（{expiredNotes.length}）
+                </h4>
 
-            <NotesList
-              notes={expiredNotes}
-              theme={theme}
-              dark={dark}
-              onDelete={deleteNote}
-              onEdit={setEditingNote}
-              onRemindToggle={handleRemindToggle}
-              deleteMode={deleteMode}
-              selectedIds={selectedForDelete}
-              onSelect={handleSelect}
-              emptyText="目前沒有已過期的記事本"
-            />
-          </div>
+                <button
+                  onClick={handleDeleteExpiredNotes}
+                  style={{
+                    border: `1px solid ${theme.border}`,
+                    background: dark ? "rgba(239,68,68,0.12)" : "#fff5f5",
+                    color: theme.text,
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    cursor: "pointer",
+                    fontSize: 13,
+                  }}
+                >
+                  全部刪除
+                </button>
+              </div>
+
+              <NotesList
+                notes={expiredNotes}
+                theme={theme}
+                dark={dark}
+                onDelete={deleteNote}
+                onEdit={setEditingNote}
+                onRemindToggle={handleRemindToggle}
+                deleteMode={deleteMode}
+                selectedIds={selectedForDelete}
+                onSelect={handleSelect}
+              />
+            </div>
+          )}
 
           {/* 一般記事本 */}
           <div>
@@ -381,6 +413,26 @@ export default function App() {
           if (!confirmDeleteId) return;
           await remove(confirmDeleteId);
           setConfirmDeleteId(null);
+        }}
+      />
+
+      {/* 刪除全部已過期記事本確認 */}
+      <ConfirmModal
+        open={openExpiredDeleteConfirm}
+        theme={theme}
+        message={`確定刪除 ${expiredNotes.length} 筆已過期記事本？`}
+        onCancel={() => setOpenExpiredDeleteConfirm(false)}
+        onConfirm={async () => {
+          const idsToDelete = expiredNotes.map((n) => n.id);
+          await batchRemove(idsToDelete);
+
+          setSelectedForDelete((prev) => {
+            const next = new Set(prev);
+            idsToDelete.forEach((id) => next.delete(id));
+            return next;
+          });
+
+          setOpenExpiredDeleteConfirm(false);
         }}
       />
 

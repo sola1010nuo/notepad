@@ -82,36 +82,34 @@ export default function App() {
 
 
   ///
-useEffect(() => {
-  console.log("[Renderer] remindAdvanceMinutes =", remindAdvanceMinutes);
-  console.log(
-    "[Renderer] notes =",
-    notes.map((n) => ({
-      id: n.id,
-      title: n.title,
-      startAt: n.startAt,
-      endAt: n.endAt,
-    }))
-  );
+  useEffect(() => {
+    console.log("[Renderer] remindAdvanceMinutes =", remindAdvanceMinutes);
+    console.log(
+      "[Renderer] notes =",
+      notes.map((n) => ({
+        id: n.id,
+        title: n.title,
+        startAt: n.startAt,
+        endAt: n.endAt,
+      }))
+    );
 
-  if (!window.electronAPI?.updateReminders) return;
+    if (!window.electronAPI?.updateReminders) return;
 
-  window.electronAPI
-    .updateReminders({
-      notes,
-      remindAdvanceMinutes,
-    })
-    .then(() => {
-      console.log("[Renderer] reminders synced");
-    })
-    .catch((err) => {
-      console.error("[Renderer] failed to sync reminders:", err);
-    });
-}, [notes, remindAdvanceMinutes]);
-///
+    window.electronAPI
+      .updateReminders({
+        notes,
+        remindAdvanceMinutes,
+      })
+      .then(() => {
+        console.log("[Renderer] reminders synced");
+      })
+      .catch((err) => {
+        console.error("[Renderer] failed to sync reminders:", err);
+      });
+  }, [notes, remindAdvanceMinutes]);
 
 
-    ///
   async function createNoteFromModal() {
     const v = form.validate();
     if (!v.ok) {
@@ -176,6 +174,27 @@ useEffect(() => {
 
     return false;
   });
+
+  /// 過期與未過期分開顯示
+  const now = Date.now();
+  const expiredNotes = filteredNotes.filter((n) => {
+    if (!n.endAt) return false;
+
+    const endTime = new Date(n.endAt).getTime();
+    if (Number.isNaN(endTime)) return false;
+
+    return endTime < now;
+  });
+
+  const activeNotes = filteredNotes.filter((n) => {
+    if (!n.endAt) return true;
+
+    const endTime = new Date(n.endAt).getTime();
+    if (Number.isNaN(endTime)) return true;
+
+    return endTime >= now;
+  });
+ /// 
 
   return (
     <div
@@ -244,17 +263,59 @@ useEffect(() => {
             {selectedTag ? `標籤：${selectedTag}` : "全部"}（{filteredNotes.length}）
           </h3>
 
-          <NotesList
-            notes={filteredNotes}
-            theme={theme}
-            dark={dark}
-            onDelete={deleteNote}
-            onEdit={setEditingNote}
-            onRemindToggle={handleRemindToggle}
-            deleteMode={deleteMode}
-            selectedIds={selectedForDelete}
-            onSelect={handleSelect}
-          />
+           {/* 已過期的記事本 */}
+          <div style={{ marginBottom: 24 }}>
+            <h4
+              style={{
+                margin: "0 0 10px 0",
+                color: theme.text,
+                borderLeft: "4px solid #ef4444",
+                paddingLeft: 10,
+              }}
+            >
+              已過期（{expiredNotes.length}）
+            </h4>
+
+            <NotesList
+              notes={expiredNotes}
+              theme={theme}
+              dark={dark}
+              onDelete={deleteNote}
+              onEdit={setEditingNote}
+              onRemindToggle={handleRemindToggle}
+              deleteMode={deleteMode}
+              selectedIds={selectedForDelete}
+              onSelect={handleSelect}
+              emptyText="目前沒有已過期的記事本"
+            />
+          </div>
+
+          {/* 一般記事本 */}
+          <div>
+            <h4
+              style={{
+                margin: "0 0 10px 0",
+                color: theme.text,
+                borderLeft: `4px solid ${theme.border}`,
+                paddingLeft: 10,
+              }}
+            >
+              記事本（{activeNotes.length}）
+            </h4>
+
+            <NotesList
+              notes={activeNotes}
+              theme={theme}
+              dark={dark}
+              onDelete={deleteNote}
+              onEdit={setEditingNote}
+              onRemindToggle={handleRemindToggle}
+              deleteMode={deleteMode}
+              selectedIds={selectedForDelete}
+              onSelect={handleSelect}
+              emptyText="目前沒有一般記事本"
+            />
+          </div>
         </div>
       </div>
 
@@ -334,8 +395,5 @@ useEffect(() => {
         onClose={() => setShowSettingsModal(false)}
       />
     </div>
-
-        
-
   );
 }

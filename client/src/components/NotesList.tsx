@@ -13,6 +13,7 @@ type NoteListProps = {
   deleteMode?: boolean;
   selectedIds?: Set<string>;
   onSelect?: (id: string, checked: boolean) => void;
+  emptyText?: string;
 };
 
 // 安全格式化日期
@@ -34,10 +35,10 @@ const formatDateTime = (dateStr: string | null): string => {
 };
 
 export default function NotesList(props: NoteListProps) {
-  const { notes, theme, dark, onDelete, onEdit, onRemindToggle, deleteMode, selectedIds, onSelect } = props;
+  const { notes, theme, dark, onDelete, onEdit, onRemindToggle, deleteMode, selectedIds, onSelect, emptyText } = props;
 
   if (notes.length === 0) {
-    return <div style={{ color: theme.muted }}>目前沒有筆記</div>;
+    return <div style={{ color: theme.muted }}>{emptyText || "目前沒有筆記"}</div>;
   }
 
   return (

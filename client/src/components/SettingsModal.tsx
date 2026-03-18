@@ -9,6 +9,9 @@ type Props = {
   remindAdvanceMinutes: number;
   setRemindAdvanceMinutes: (minutes: number) => void;
   onClose: () => void;
+
+  onExportBackup: () => void;
+  onImportBackup: () => void;
 };
 
 export default function SettingsModal(props: Props) {
@@ -20,13 +23,14 @@ export default function SettingsModal(props: Props) {
     remindAdvanceMinutes,
     setRemindAdvanceMinutes,
     onClose,
+    onExportBackup,
+    onImportBackup,
   } = props;
 
   const [remindOption, setRemindOption] = React.useState("30");
   const [customHours, setCustomHours] = React.useState("0");
   const [customMinutes, setCustomMinutes] = React.useState("30");
 
-  // 每次 modal 打開 / 外部值變化時，同步顯示內容
   React.useEffect(() => {
     const hours = Math.floor(remindAdvanceMinutes / 60);
     const minutes = remindAdvanceMinutes % 60;
@@ -47,13 +51,11 @@ export default function SettingsModal(props: Props) {
     if (remindOption === "custom") {
       const h = Math.max(0, parseInt(customHours, 10) || 0);
       const m = Math.max(0, parseInt(customMinutes, 10) || 0);
-
       minutes = h * 60 + m;
     } else {
       minutes = parseInt(remindOption, 10);
     }
 
-    // 避免設定成 0 分鐘以下
     if (minutes < 1) {
       minutes = 1;
     }
@@ -118,7 +120,6 @@ export default function SettingsModal(props: Props) {
         </div>
 
         <div style={{ display: "grid", gap: 20, marginTop: 16 }}>
-          {/* 主題切換 */}
           <div>
             <label
               style={{
@@ -162,7 +163,6 @@ export default function SettingsModal(props: Props) {
             </div>
           </div>
 
-          {/* 提醒時間設定 */}
           <div>
             <label
               style={{
@@ -268,6 +268,55 @@ export default function SettingsModal(props: Props) {
                 </div>
               </div>
             )}
+          </div>
+
+          <div>
+            <label
+              style={{
+                display: "block",
+                marginBottom: 8,
+                color: theme.text,
+                fontWeight: 600,
+              }}
+            >
+              資料管理
+            </label>
+
+            <div style={{ color: theme.muted, fontSize: 14, marginBottom: 10 }}>
+              匯出目前的筆記與設定，或從備份檔匯入資料。
+            </div>
+
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={onExportBackup}
+                style={{
+                  padding: "8px 12px",
+                  background: theme.btnBg,
+                  color: theme.text,
+                  border: `1px solid ${theme.border}`,
+                  borderRadius: 8,
+                  cursor: "pointer",
+                }}
+              >
+                匯出備份
+              </button>
+
+              <button
+                type="button"
+                onClick={onImportBackup}
+                style={{
+                  padding: "8px 12px",
+                  background: "transparent",
+                  color: theme.text,
+                  border: `1px solid ${theme.border}`,
+                  borderRadius: 8,
+                  cursor: "pointer",
+                }}
+              >
+                匯入備份
+              </button>
+            </div>
           </div>
         </div>
 

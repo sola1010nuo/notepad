@@ -13,6 +13,11 @@ import ConfirmModal from "./components/ConfirmModal";
 import SettingsModal from "./components/SettingsModal";
 import AppHeader from "./components/AppHeader";
 import SearchBox from "./components/SearchBox";
+import {
+  exportBackup,
+  importBackup,
+  type BackupPayload,
+} from "./services/api";
 
 function getInitialRemindAdvanceMinutes() {
   const saved = localStorage.getItem("remindAdvanceMinutes");
@@ -23,6 +28,20 @@ function getInitialRemindAdvanceMinutes() {
   }
 
   return 30; // 預設 30 分鐘
+}
+
+function downloadJsonFile(filename: string, data: unknown) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+
+  URL.revokeObjectURL(url);
 }
 
 export default function App() {
@@ -81,7 +100,6 @@ export default function App() {
     localStorage.setItem("remindAdvanceMinutes", remindAdvanceMinutes.toString());
   }, [remindAdvanceMinutes]);
 
-
   ///
   useEffect(() => {
     console.log("[Renderer] remindAdvanceMinutes =", remindAdvanceMinutes);
@@ -110,6 +128,87 @@ export default function App() {
       });
   }, [notes, remindAdvanceMinutes]);
 
+  async function handleExportBackup() {
+  try {
+    const backup = await exportBackup({
+      darkMode: dark,
+      remindAdvanceMinutes,
+    });
+
+    const ts = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "-")
+      .slice(0, 19);
+
+    const defaultFileName = `note-backup-${ts}.json`;
+
+    if (!window.electronAPI?.saveBackupFile) {
+      alert("目前無法使用桌面版匯出功能");
+      return;
+    }
+
+    const result = await window.electronAPI.saveBackupFile(
+      JSON.stringify(backup, null, 2),
+      defaultFileName
+    );
+
+    if (result?.canceled) {
+      return;
+    }
+
+    if (!result?.ok) {
+      alert("匯出失敗");
+      return;
+    }
+
+    alert("匯出成功");
+  } catch (err) {
+    console.error(err);
+    alert("匯出失敗");
+  }
+}
+
+  async function handleImportBackup() {
+  try {
+    if (!window.electronAPI?.openBackupFile) {
+      alert("目前無法使用桌面版匯入功能");
+      return;
+    }
+
+    const picked = await window.electronAPI.openBackupFile();
+
+    if (picked?.canceled) {
+      return;
+    }
+
+    if (!picked?.ok || !picked?.content) {
+      alert("讀取備份檔失敗");
+      return;
+    }
+
+    const ok = window.confirm("匯入會覆蓋目前所有筆記與設定，確定要繼續嗎？");
+    if (!ok) return;
+
+    const parsed = JSON.parse(picked.content) as BackupPayload;
+    const result = await importBackup(parsed);
+
+    setDark(result.settings.darkMode);
+    setRemindAdvanceMinutes(result.settings.remindAdvanceMinutes);
+
+    localStorage.setItem("darkMode", JSON.stringify(result.settings.darkMode));
+    localStorage.setItem(
+      "remindAdvanceMinutes",
+      String(result.settings.remindAdvanceMinutes)
+    );
+
+    alert(`匯入成功，共匯入 ${result.importedCount} 筆資料`);
+
+    window.location.reload();
+  } catch (err) {
+    console.error(err);
+    alert("匯入失敗，請確認備份檔格式是否正確");
+  }
+}
 
   async function createNoteFromModal() {
     const v = form.validate();
@@ -160,10 +259,10 @@ export default function App() {
     setModalLoading(false);
 
     if (ok) {
-        await window.electronAPI?.resetReminder(id);
-        setEditingNote(null);
+      await window.electronAPI?.resetReminder(id);
+      setEditingNote(null);
     }
-}
+  }
 
   async function handleRemindToggle(id: string, newRemind: number) {
     await update(id, { remind: newRemind });
@@ -200,7 +299,7 @@ export default function App() {
 
     return endTime >= now;
   });
- /// 
+  ///
 
   return (
     <div
@@ -212,14 +311,13 @@ export default function App() {
         minHeight: "100vh",
       }}
     >
-
-    {/* App Header */}
-    <AppHeader
+      {/* App Header */}
+      <AppHeader
         theme={theme}
         dark={dark}
         onToggleDark={() => setDark((v) => !v)}
         onOpenSettings={() => setShowSettingsModal(true)}
-    />
+      />
 
       {/* Main Layout */}
       <div style={{ display: "flex", gap: 20, maxWidth: 1200, margin: "0 auto" }}>
@@ -259,18 +357,18 @@ export default function App() {
           )}
 
           {/* search box */}
-         <SearchBox
+          <SearchBox
             theme={theme}
             value={searchTerm}
             onChange={setSearchTerm}
-            />
+          />
 
           <h3 style={{ marginTop: 0 }}>
             {selectedTag ? `標籤：${selectedTag}` : "全部"}（{filteredNotes.length}）
           </h3>
 
-           {/* 已過期的記事本 */}
-            {expiredNotes.length > 0 && (
+          {/* 已過期的記事本 */}
+          {expiredNotes.length > 0 && (
             <div style={{ marginBottom: 24 }}>
               <div
                 style={{
@@ -445,6 +543,8 @@ export default function App() {
         remindAdvanceMinutes={remindAdvanceMinutes}
         setRemindAdvanceMinutes={setRemindAdvanceMinutes}
         onClose={() => setShowSettingsModal(false)}
+        onExportBackup={handleExportBackup}
+        onImportBackup={handleImportBackup}
       />
     </div>
   );

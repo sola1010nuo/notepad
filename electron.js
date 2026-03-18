@@ -1,6 +1,7 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
 const reminderManager = require("./reminderManager");
+const fs = require("fs");
 
 app.disableHardwareAcceleration();
 app.commandLine.appendSwitch("no-proxy-server");
@@ -9,7 +10,7 @@ app.commandLine.appendSwitch("proxy-auto-detect", "false");
 // during development we may load TypeScript files directly
 if (process.env.ELECTRON_START_URL) {
   try {
-    require('ts-node').register({ transpileOnly: true });
+    require("ts-node").register({ transpileOnly: true });
   } catch (e) {
     // ts-node might not be installed; ignore if so
   }
@@ -18,27 +19,24 @@ if (process.env.ELECTRON_START_URL) {
 // start the express server from our TypeScript source via ts-node if needed
 let serverStarted = false;
 
-const fs = require('fs');
-
 async function startServer() {
   try {
     // determine whether we should use the compiled output or raw source
     let serverModulePath;
-    const compiled = path.join(__dirname, 'server', 'dist', 'index.js');
+    const compiled = path.join(__dirname, "server", "dist", "index.js");
     if (fs.existsSync(compiled)) {
       serverModulePath = compiled;
     } else {
-      serverModulePath = path.join(__dirname, 'server', 'src', 'index');
+      serverModulePath = path.join(__dirname, "server", "src", "index");
     }
 
-    // eslint-disable-next-line import/no-dynamic-require, global-require
     const serverModule = require(serverModulePath);
-    if (serverModule && typeof serverModule.startServer === 'function') {
+    if (serverModule && typeof serverModule.startServer === "function") {
       await serverModule.startServer();
       serverStarted = true;
     }
   } catch (err) {
-    console.error('Failed to start server:', err);
+    console.error("Failed to start server:", err);
   }
 }
 
@@ -53,12 +51,10 @@ function createWindow() {
       sandbox: false,
       preload: path.join(__dirname, "preload.js"),
     },
-    
   });
 
   const devUrl = process.env.ELECTRON_START_URL;
 
-  // 先印出來，確認 Electron 真的有拿到 env
   console.log("ELECTRON_START_URL =", devUrl);
 
   if (devUrl) {
@@ -92,12 +88,67 @@ app.whenReady().then(async () => {
     reminderManager.removeNote(noteId);
     return { ok: true };
   });
+
+  ipcMain.handle("backup:save-file", async (_event, { content, defaultFileName }) => {
+    try {
+      const result = await dialog.showSaveDialog({
+        title: "匯出備份",
+        defaultPath: defaultFileName,
+        filters: [{ name: "JSON Files", extensions: ["json"] }],
+      });
+
+      if (result.canceled || !result.filePath) {
+        return { ok: false, canceled: true };
+      }
+
+      fs.writeFileSync(result.filePath, content, "utf-8");
+      return { ok: true, canceled: false, filePath: result.filePath };
+    } catch (err) {
+      console.error("backup:save-file failed:", err);
+      return {
+        ok: false,
+        canceled: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  });
+
+  ipcMain.handle("backup:open-file", async () => {
+    try {
+      const result = await dialog.showOpenDialog({
+        title: "匯入備份",
+        properties: ["openFile"],
+        filters: [{ name: "JSON Files", extensions: ["json"] }],
+      });
+
+      if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+        return { ok: false, canceled: true };
+      }
+
+      const filePath = result.filePaths[0];
+      const content = fs.readFileSync(filePath, "utf-8");
+
+      return {
+        ok: true,
+        canceled: false,
+        filePath,
+        content,
+      };
+    } catch (err) {
+      console.error("backup:open-file failed:", err);
+      return {
+        ok: false,
+        canceled: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  });
 });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
 });
 
-app.on('activate', () => {
+app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });

@@ -2,6 +2,30 @@
 import axios from "axios";
 import { CreateNoteInput, UpdateNoteInput } from "../types";
 
+export type BackupSettings = {
+  darkMode: boolean;
+  remindAdvanceMinutes: number;
+};
+
+export type BackupNote = {
+  id: string;
+  title: string;
+  content: string;
+  startAt: string | null;
+  endAt: string | null;
+  tag: string | null;
+  remind: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type BackupPayload = {
+  version: number;
+  exportedAt: string;
+  settings: BackupSettings;
+  notes: BackupNote[];
+};
+
 // Electron build 時是 file://，沒有 CRA proxy，所以要改成打 localhost:5000
 function getApiBaseUrl() {
   if (typeof window !== "undefined" && window.location.protocol === "file:") {
@@ -47,5 +71,27 @@ export const deleteNote = async (id: string) => {
     await api.delete(`/notes/${id}`);
   } catch (error: any) {
     throw new Error("Error deleting note: " + (error?.message ?? "unknown"));
+  }
+};
+
+export const exportBackup = async (settings: BackupSettings) => {
+  try {
+    const response = await api.post(`/notes/backup/export`, { settings });
+    return response.data as BackupPayload;
+  } catch (error: any) {
+    throw new Error("Error exporting backup: " + (error?.message ?? "unknown"));
+  }
+};
+
+export const importBackup = async (payload: BackupPayload) => {
+  try {
+    const response = await api.post(`/notes/backup/import`, payload);
+    return response.data as {
+      ok: boolean;
+      settings: BackupSettings;
+      importedCount: number;
+    };
+  } catch (error: any) {
+    throw new Error("Error importing backup: " + (error?.message ?? "unknown"));
   }
 };

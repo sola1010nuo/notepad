@@ -1,113 +1,85 @@
 # Universal Note App
 
-## Overview
-The Universal Note App is a web application that allows users to create, edit, and view notes. It is built using React for the client-side and Node.js with Express for the server-side. This application provides a simple and intuitive interface for managing notes.
+A simple desktop note-taking application built with Electron, React, and SQLite.
+
+This app is designed for personal use with local data storage and basic productivity features such as reminders, tags, and search.
+
+---
 
 ## Features
-- Create new notes
-- Edit existing notes
-- View notes in detail
-- Responsive design for mobile and desktop
 
-## Project Structure
-```
-universal-note-app
-├── client                # Client-side application
-│   ├── public            # Public assets
-│   ├── src               # Source code
-│   ├── package.json      # Client dependencies
-│   └── tsconfig.json     # Client TypeScript configuration
-├── server                # Server-side application
-│   ├── src               # Source code
-│   ├── package.json      # Server dependencies
-│   └── tsconfig.json     # Server TypeScript configuration
-├── shared                # Shared types
-├── scripts               # Scripts for automation
-├── .gitignore            # Git ignore file
-├── docker-compose.yml     # Docker Compose configuration
-├── Dockerfile            # Dockerfile for building the application
-├── package.json          # Root project dependencies
-└── tsconfig.json         # Root TypeScript configuration
+* Create, edit, and delete notes
+* Optional start time and end time
+* Reminder system with configurable advance time
+* Tag-based filtering
+* Search by title or content
+* Bulk delete notes
+* Automatic detection of expired notes
+* Local database (data is stored on your device)
+
+---
+
+## How to Use
+
+### 1. Install dependencies
+
+```bash
+npm install
 ```
 
-## Getting Started
+### 2. Run in development mode
 
-### Prerequisites
-- Node.js
-- npm or yarn
-- Docker (optional)
+Start frontend:
 
-### Installation
-1. Clone the repository:
-   ```
-   git clone <repository-url>
-   cd universal-note-app
-   ```
+```bash
+npm run client
+```
 
-2. Install dependencies for the client:
-   ```
-   cd client
-   npm install
-   ```
+Start backend:
 
-3. Install dependencies for the server:
-   ```
-   cd server
-   npm install
-   ```
+```bash
+npm run server
+```
 
-### Running the Application
-There are now three available modes:
+Start Electron:
 
-1. **Web (original)**
+```bash
+npm run electron:dev
+```
 
-   To run the app in the browser with separate client and server:
+---
 
-   - Start the server:
-     ```bash
-     cd server
-     npm start
-     ```
+### 3. Build the application
 
-   - Start the client:
-     ```bash
-     cd client
-     npm start
-     ```
+```bash
+npm run build
+```
 
-   - Or start both with Docker:
-     ```bash
-     docker-compose up
-     ```
+---
 
-2. **Electron (development)**
+### 4. Package as desktop app (.exe)
 
-   Launch a desktop window that points at the React development server. The backend is started automatically.
+```bash
+npm run dist
+```
 
-   ```bash
-   npm install          # ensure root deps are installed
-   cd client && npm install
-   cd server && npm install
-   cd ..
+After packaging, the output will be in:
 
-   npm run electron:dev
-   ```
+```
+dist_electron/
+```
 
-   This sets `ELECTRON_START_URL` so the window loads `http://localhost:3000`.
+You can run:
 
-3. **Electron (packaged)**
+* `UniversalNoteApp Setup.exe` (installer), or
+* `win-unpacked/UniversalNoteApp.exe` (portable version)
 
-   Build both parts and create a distributable executable. On Windows it will produce an `.exe` installer.
+---
 
-   ```bash
-   npm run dist
-   ```
+## Notes
 
-   Output is placed in `dist_electron/`.
+* All data is stored locally using SQLite.
+* This app does not include cloud sync or account login.
+* On Windows, building may require installing Visual Studio with C++ tools if native dependencies fail to compile.
 
-
-## Contributing
-Contributions are welcome! Please open an issue or submit a pull request for any improvements or bug fixes.
-
-## License
-This project is licensed under the MIT License. See the LICENSE file for details.
+---

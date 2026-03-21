@@ -19,7 +19,25 @@ This app is designed for personal use with local data storage and basic producti
 
 ---
 
-## How to Use
+
+## Download (Recommended)
+
+You can directly download the Windows executable from GitHub Releases:
+
+https://github.com/sola1010nuo/notepad/releases
+
+### Steps
+
+1. Open the link above
+2. Click the latest release
+3. Download .exe
+4. Double-click to run
+
+> If Windows shows a warning:
+> Click **More info** → **Run anyway**
+
+
+## Run from Source
 
 ### 1. Install dependencies
 
@@ -49,7 +67,9 @@ npm run electron:dev
 
 ---
 
-### 3. Build the application
+## Package as Desktop App
+
+### 1. Build the application
 
 ```bash
 npm run build
@@ -57,7 +77,7 @@ npm run build
 
 ---
 
-### 4. Package as desktop app (.exe)
+### 2. Package as desktop app (.exe)
 
 ```bash
 npm run dist

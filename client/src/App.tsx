@@ -78,8 +78,12 @@ export default function App() {
   );
 
   const allTags = Array.from(
-    new Set(notes.filter((n) => n.tag).map((n) => n.tag as string))
-  ).sort();
+  new Set(
+    notes
+      .map((n) => n.tag?.trim())
+      .filter((tag): tag is string => Boolean(tag))
+  )
+).sort((a, b) => a.localeCompare(b));
 
   useEffect(() => {
     document.body.style.background = theme.bg;
@@ -469,6 +473,7 @@ export default function App() {
         setEndTime={form.setEndTime}
         tag={form.tag}
         setTag={form.setTag}
+        existingTags={allTags}
         remind={form.remind}
         setRemind={form.setRemind}
         onClose={() => setShowModal(false)}
@@ -482,6 +487,7 @@ export default function App() {
         theme={theme}
         loading={modalLoading}
         note={editingNote}
+        existingTags={allTags}
         onClose={() => setEditingNote(null)}
         onSave={handleEditSave}
       />

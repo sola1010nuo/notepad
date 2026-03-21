@@ -24,6 +24,7 @@ type Props = {
 
   tag: string;
   setTag: (v: string) => void;
+  existingTags?: string[];
   remind: boolean;
   setRemind: (v: boolean) => void;
 
@@ -32,7 +33,7 @@ type Props = {
 };
 
 export default function NoteModal(props: Props) {
-  const { open, theme, loading } = props;
+  const { open, theme, loading, existingTags= [] } = props;
   const inputStyle = getInputStyle(theme);
 
   const [timeError, setTimeError] = useState<string>("");
@@ -222,11 +223,17 @@ export default function NoteModal(props: Props) {
             <div>
               <div style={{ fontSize: 12, color: theme.muted, marginBottom: 6 }}>標籤</div>
               <input
+                list="tag-suggestions"
                 value={props.tag}
                 onChange={(e) => props.setTag(e.target.value)}
-                placeholder="例: 工作、學習、生活"
+                placeholder="可輸入新標籤，或選擇已使用過的標籤"
                 style={inputStyle}
               />
+              <datalist id="tag-suggestions">
+                {existingTags.map((t) => (
+                  <option key={t} value={t} />
+                ))}
+              </datalist>
             </div>
 
             <div>

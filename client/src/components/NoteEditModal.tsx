@@ -8,13 +8,14 @@ type Props = {
   theme: Theme;
   loading: boolean;
   note: Note | null;
+  existingTags?: string[];
 
   onClose: () => void;
   onSave: (id: string, data: any) => Promise<void>;
 };
 
 export default function NoteEditModal(props: Props) {
-  const { open, theme, loading, note } = props;
+  const { open, theme, loading, note, existingTags = [] } = props;
   const inputStyle = getInputStyle(theme);
 
   const [title, setTitle] = useState("");
@@ -26,7 +27,7 @@ export default function NoteEditModal(props: Props) {
   const [endDate, setEndDate] = useState("");
   const [endTime, setEndTime] = useState("");
 
-  // ✅ inline 錯誤（避免 alert 造成卡輸入）
+  //  inline 錯誤（避免 alert 造成卡輸入）
   const [timeError, setTimeError] = useState("");
 
   const safeClose = () => {
@@ -36,7 +37,7 @@ export default function NoteEditModal(props: Props) {
     }, 0);
   };
 
-  // ✅ ESC anywhere (open 時有效)
+  //  ESC anywhere (open 時有效)
   useEffect(() => {
     if (!open) return;
 
@@ -106,7 +107,7 @@ export default function NoteEditModal(props: Props) {
     }
   };
 
-  // ✅ 同新增：只要兩邊都有日期就比，時間沒填當 00:00
+  // 同新增：只要兩邊都有日期就比，時間沒填當 00:00
   const invalidTime = useMemo(() => {
     if (!startDate || !endDate) return false;
     const s = new Date(`${startDate}T${startTime?.trim() ? startTime : "00:00"}:00`);
@@ -115,7 +116,7 @@ export default function NoteEditModal(props: Props) {
     return s.getTime() > e.getTime();
   }, [startDate, startTime, endDate, endTime]);
 
-  // ✅ 使用者改時間就清掉錯誤
+  // 使用者改時間就清掉錯誤
   useEffect(() => {
     if (timeError) setTimeError("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -124,7 +125,7 @@ export default function NoteEditModal(props: Props) {
   const handleSave = async () => {
     if (!note) return;
 
-    // ✅ 防呆：不 alert，顯示 inline error
+    // 防呆：不 alert，顯示 inline error
     if (invalidTime) {
       setTimeError("開始時間不能比結束時間晚");
       return;
@@ -226,7 +227,7 @@ export default function NoteEditModal(props: Props) {
             </div>
           </div>
 
-          {/* ✅ inline 錯誤訊息 */}
+          {/* inline 錯誤訊息 */}
           {!!timeError && (
             <div
               style={{
@@ -247,7 +248,18 @@ export default function NoteEditModal(props: Props) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
               <div style={{ fontSize: 12, color: theme.muted, marginBottom: 6 }}>標籤</div>
-              <input value={tag} onChange={(e) => setTag(e.target.value)} placeholder="例: 工作、學習、生活" style={inputStyle} />
+              <input
+                list="tag-suggestions-edit"
+                value={tag}
+                onChange={(e) => setTag(e.target.value)}
+                placeholder="可輸入新標籤，或選擇已使用過的標籤"
+                style={inputStyle}
+              />
+              <datalist id="tag-suggestions-edit">
+                {existingTags.map((t) => (
+                  <option key={t} value={t} />
+                ))}
+              </datalist>
             </div>
 
             <div>

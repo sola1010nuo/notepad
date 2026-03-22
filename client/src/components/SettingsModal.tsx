@@ -12,6 +12,9 @@ type Props = {
 
   onExportBackup: () => void;
   onImportBackup: () => void;
+
+  backupMessage: string;
+  backupMessageType: "success" | "error" | "";
 };
 
 export default function SettingsModal(props: Props) {
@@ -25,6 +28,8 @@ export default function SettingsModal(props: Props) {
     onClose,
     onExportBackup,
     onImportBackup,
+    backupMessage,
+    backupMessageType,
   } = props;
 
   const [remindOption, setRemindOption] = React.useState("30");
@@ -317,6 +322,23 @@ export default function SettingsModal(props: Props) {
                 匯入備份
               </button>
             </div>
+            {backupMessage && (
+              <div
+                style={{
+                  marginTop: 10,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color:
+                    backupMessageType === "success"
+                      ? "#22c55e"
+                      : backupMessageType === "error"
+                      ? "#ef4444"
+                      : theme.muted,
+                }}
+              >
+                {backupMessage}
+              </div>
+            )}
           </div>
         </div>
 

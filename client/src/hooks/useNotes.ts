@@ -38,6 +38,16 @@ type UpdateNotePayload = {
   remind?: number; // 0 或 1
 };
 
+function isExpiredReminder(note: Note) {
+  if (note.remind !== 1) return false;
+  if (!note.endAt) return false;
+
+  const end = new Date(note.endAt).getTime();
+  if (Number.isNaN(end)) return false;
+
+  return end <= Date.now();
+}
+
 export function useNotes(options?: { autoFetch?: boolean }) {
   const autoFetch = options?.autoFetch ?? true;
 
@@ -45,19 +55,53 @@ export function useNotes(options?: { autoFetch?: boolean }) {
   const [loading, setLoading] = useState(false);
   const [errMsg, setErrMsg] = useState<string | null>(null);
 
+  // 自動關閉已過期提醒（不打開 loading，避免 UI 一直閃）
+  const autoDisableExpiredReminders = useCallback(async (list: Note[]) => {
+    const expiredNotes = list.filter(isExpiredReminder);
+
+    if (expiredNotes.length === 0) return list;
+
+    // 先把前端畫面直接改掉，讓 UI 立刻正確
+    const cleanedList = list.map((note) =>
+      isExpiredReminder(note) ? { ...note, remind: 0 } : note
+    );
+
+    setNotes(cleanedList);
+
+    // 再同步寫回後端
+    await Promise.allSettled(
+      expiredNotes.map((note) =>
+        apiUpdateNote(note.id, {
+          title: note.title,
+          content: note.content,
+          startAt: note.startAt ?? null,
+          endAt: note.endAt ?? null,
+          tag: note.tag ?? null,
+          remind: 0,
+        } as any)
+      )
+    );
+
+    return cleanedList;
+  }, []);
+
   const refresh = useCallback(async () => {
     setErrMsg(null);
     setLoading(true);
     try {
       const data = await apiFetchNotes();
       const list = Array.isArray(data) ? data : data?.notes ?? [];
+
       setNotes(list);
+
+      // 載入後順手清掉已過期提醒
+      await autoDisableExpiredReminders(list);
     } catch (e: any) {
       setErrMsg(e?.message ?? "讀取失敗");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [autoDisableExpiredReminders]);
 
   const create = useCallback(
     async (payload: CreateNotePayload) => {
@@ -65,7 +109,6 @@ export function useNotes(options?: { autoFetch?: boolean }) {
       setLoading(true);
       try {
         await apiCreateNote(payload as any);
-        // 建議：新增後直接重抓一次，避免前後端狀態不一致
         await refresh();
         return true;
       } catch (e: any) {
@@ -84,7 +127,26 @@ export function useNotes(options?: { autoFetch?: boolean }) {
       setLoading(true);
       try {
         const updated = await apiUpdateNote(id, payload as any);
-        setNotes((prev) => prev.map((n) => (n.id === id ? updated : n)));
+
+        // 如果更新後的資料已經過期，就直接把提醒關掉
+        const normalized = isExpiredReminder(updated)
+          ? { ...updated, remind: 0 }
+          : updated;
+
+        setNotes((prev) => prev.map((n) => (n.id === id ? normalized : n)));
+
+        // 如果剛好更新完就已過期，順便再寫回一次提醒關閉
+        if (isExpiredReminder(updated)) {
+          await apiUpdateNote(id, {
+            title: updated.title,
+            content: updated.content,
+            startAt: updated.startAt ?? null,
+            endAt: updated.endAt ?? null,
+            tag: updated.tag ?? null,
+            remind: 0,
+          } as any);
+        }
+
         return true;
       } catch (e: any) {
         setErrMsg(e?.message ?? "更新失敗");
@@ -99,7 +161,6 @@ export function useNotes(options?: { autoFetch?: boolean }) {
   const remove = useCallback(async (id: string) => {
     try {
       await apiDeleteNote(id);
-      // 直接前端移除（更快），也可改成 await refresh()
       setNotes((prev) => prev.filter((n) => n.id !== id));
       return true;
     } catch (e: any) {
@@ -111,9 +172,7 @@ export function useNotes(options?: { autoFetch?: boolean }) {
   // 批量刪除 - 不設置 loading，避免 Modal 被鎖定
   const batchRemove = useCallback(async (ids: string[]) => {
     try {
-      // 並行調用所有刪除請求
-      await Promise.all(ids.map(id => apiDeleteNote(id)));
-      // 一次性過濾所有已刪除的筆記
+      await Promise.all(ids.map((id) => apiDeleteNote(id)));
       setNotes((prev) => prev.filter((n) => !ids.includes(n.id)));
       return true;
     } catch (e: any) {
@@ -126,6 +185,39 @@ export function useNotes(options?: { autoFetch?: boolean }) {
   useEffect(() => {
     if (autoFetch) refresh();
   }, [autoFetch, refresh]);
+
+  // App 開著時，每分鐘檢查一次是否有提醒過期
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNotes((prev) => {
+        const hasExpired = prev.some(isExpiredReminder);
+        if (!hasExpired) return prev;
+
+        const cleaned = prev.map((note) =>
+          isExpiredReminder(note) ? { ...note, remind: 0 } : note
+        );
+
+        // 非同步寫回後端
+        const expiredNotes = prev.filter(isExpiredReminder);
+        Promise.allSettled(
+          expiredNotes.map((note) =>
+            apiUpdateNote(note.id, {
+              title: note.title,
+              content: note.content,
+              startAt: note.startAt ?? null,
+              endAt: note.endAt ?? null,
+              tag: note.tag ?? null,
+              remind: 0,
+            } as any)
+          )
+        );
+
+        return cleaned;
+      });
+    }, 60 * 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   return {
     notes,

@@ -1,6 +1,3 @@
-// App.tsx
-// 整個記事本頁面的主控中心：
-// 負責管理 state、處理事件、組合 hooks，並把資料傳給各子元件。
 import React, { useEffect, useState } from "react";
 import NoteModal from "./components/NoteModal";
 import NoteEditModal from "./components/NoteEditModal";
@@ -17,6 +14,11 @@ import ImportConfirmModal from "./components/ImportConfirmModal";
 import { useFilteredNotes } from "./hooks/useFilteredNotes";
 import NotesMainSection from "./components/NotesMainSection";
 import "./styles/nativeDateInput.css";
+import DeleteConfirmModals from "./components/DeleteConfirmModals";
+
+// App.tsx
+// 整個記事本頁面的主控中心：
+// 負責管理 state、處理事件、組合 hooks，並把資料傳給各子元件。
 
 function getInitialRemindAdvanceMinutes() {
   const saved = localStorage.getItem("remindAdvanceMinutes");
@@ -300,38 +302,33 @@ export default function App() {
         onSave={handleEditSave}
       />
 
-      <ConfirmModal
-        open={openBulkConfirm}
+      <DeleteConfirmModals
         theme={theme}
-        message={`確定刪除 ${selectedForDelete.size} 筆？`}
-        onCancel={() => setOpenBulkConfirm(false)}
-        onConfirm={async () => {
+        selectedTag={selectedTag}
+        selectedForDelete={selectedForDelete}
+        confirmDeleteId={confirmDeleteId}
+        openBulkConfirm={openBulkConfirm}
+        openExpiredDeleteConfirm={openExpiredDeleteConfirm}
+        openActiveDeleteConfirm={openActiveDeleteConfirm}
+        openTagDeleteConfirm={openTagDeleteConfirm}
+        expiredNotes={expiredNotes}
+        activeNotes={activeNotes}
+        onCloseSingleDelete={() => setConfirmDeleteId(null)}
+        onConfirmSingleDelete={async () => {
+          if (!confirmDeleteId) return;
+          await remove(confirmDeleteId);
+          setConfirmDeleteId(null);
+        }}
+        onCloseBulkDelete={() => setOpenBulkConfirm(false)}
+        onConfirmBulkDelete={async () => {
           const idsToDelete = Array.from(selectedForDelete);
           await batchRemove(idsToDelete);
           setSelectedForDelete(new Set());
           setDeleteMode(false);
           setOpenBulkConfirm(false);
         }}
-      />
-
-      <ConfirmModal
-        open={!!confirmDeleteId}
-        theme={theme}
-        message="確定刪除？"
-        onCancel={() => setConfirmDeleteId(null)}
-        onConfirm={async () => {
-          if (!confirmDeleteId) return;
-          await remove(confirmDeleteId);
-          setConfirmDeleteId(null);
-        }}
-      />
-
-      <ConfirmModal
-        open={openExpiredDeleteConfirm}
-        theme={theme}
-        message={`確定刪除 ${expiredNotes.length} 筆已過期記事本？`}
-        onCancel={() => setOpenExpiredDeleteConfirm(false)}
-        onConfirm={async () => {
+        onCloseExpiredDelete={() => setOpenExpiredDeleteConfirm(false)}
+        onConfirmExpiredDelete={async () => {
           const idsToDelete = expiredNotes.map((n) => n.id);
           await batchRemove(idsToDelete);
 
@@ -343,14 +340,8 @@ export default function App() {
 
           setOpenExpiredDeleteConfirm(false);
         }}
-      />
-
-      <ConfirmModal
-        open={openActiveDeleteConfirm}
-        theme={theme}
-        message={`確定刪除 ${activeNotes.length} 筆記事本？`}
-        onCancel={() => setOpenActiveDeleteConfirm(false)}
-        onConfirm={async () => {
+        onCloseActiveDelete={() => setOpenActiveDeleteConfirm(false)}
+        onConfirmActiveDelete={async () => {
           const idsToDelete = activeNotes.map((n) => n.id);
           await batchRemove(idsToDelete);
 
@@ -362,14 +353,8 @@ export default function App() {
 
           setOpenActiveDeleteConfirm(false);
         }}
-      />
-
-      <ConfirmModal
-        open={openTagDeleteConfirm}
-        theme={theme}
-        message={`確定刪除標籤「${selectedTag}」下的 ${activeNotes.length} 筆記事本？`}
-        onCancel={() => setOpenTagDeleteConfirm(false)}
-        onConfirm={async () => {
+        onCloseTagDelete={() => setOpenTagDeleteConfirm(false)}
+        onConfirmTagDelete={async () => {
           const idsToDelete = activeNotes.map((n) => n.id);
           await batchRemove(idsToDelete);
 

@@ -1,3 +1,6 @@
+// App.tsx
+// 整個記事本頁面的主控中心：
+// 負責管理 state、處理事件、組合 hooks，並把資料傳給各子元件。
 import React, { useEffect, useState } from "react";
 import NoteModal from "./components/NoteModal";
 import NoteEditModal from "./components/NoteEditModal";
@@ -5,17 +8,15 @@ import Sidebar from "./components/Sidebar";
 import { darkTheme, lightTheme } from "./styles/theme";
 import { useNotes } from "./hooks/useNotes";
 import { useNoteForm } from "./hooks/useNoteForm";
-import TopActions from "./components/TopActions";
-import "./styles/nativeDateInput.css";
-import NotesList from "./components/NotesList";
 import type { Note } from "./hooks/useNotes";
 import ConfirmModal from "./components/ConfirmModal";
 import SettingsModal from "./components/SettingsModal";
 import AppHeader from "./components/AppHeader";
-import SearchBox from "./components/SearchBox";
 import { useBackup } from "./hooks/useBackup";
 import ImportConfirmModal from "./components/ImportConfirmModal";
 import { useFilteredNotes } from "./hooks/useFilteredNotes";
+import NotesMainSection from "./components/NotesMainSection";
+import "./styles/nativeDateInput.css";
 
 function getInitialRemindAdvanceMinutes() {
   const saved = localStorage.getItem("remindAdvanceMinutes");
@@ -54,11 +55,7 @@ export default function App() {
   const [openBulkConfirm, setOpenBulkConfirm] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [openExpiredDeleteConfirm, setOpenExpiredDeleteConfirm] = useState(false);
-
-  // 新增：全部頁的一般記事本全部刪除確認
   const [openActiveDeleteConfirm, setOpenActiveDeleteConfirm] = useState(false);
-
-  // 新增：標籤頁的一般記事本全部刪除確認
   const [openTagDeleteConfirm, setOpenTagDeleteConfirm] = useState(false);
 
   const [remindAdvanceMinutes, setRemindAdvanceMinutes] = useState<number>(
@@ -88,6 +85,12 @@ export default function App() {
     setRemindAdvanceMinutes,
   });
 
+  const { filteredNotes, expiredNotes, activeNotes } = useFilteredNotes({
+    notes,
+    selectedTag,
+    searchTerm,
+  });
+
   async function handleImportFromSettings() {
     setShowSettingsModal(false);
     await handleImportBackup();
@@ -98,7 +101,6 @@ export default function App() {
     document.body.style.margin = "0";
   }, [theme.bg]);
 
-  // 每次打開新增 Modal 清掉錯誤，並帶入目前選中的 tag
   useEffect(() => {
     if (!showModal) return;
     setErrMsg(null);
@@ -107,7 +109,6 @@ export default function App() {
     }
   }, [showModal, setErrMsg, selectedTag, form]);
 
-  // 記住全域提醒提前時間
   useEffect(() => {
     localStorage.setItem("remindAdvanceMinutes", remindAdvanceMinutes.toString());
   }, [remindAdvanceMinutes]);
@@ -145,6 +146,7 @@ export default function App() {
       setErrMsg(v.message);
       return;
     }
+
     setModalLoading(true);
     const ok = await create(form.payload as any);
     setModalLoading(false);
@@ -182,13 +184,11 @@ export default function App() {
     setOpenExpiredDeleteConfirm(true);
   }
 
-  // 新增：全部頁的一般記事本全部刪除
   function handleDeleteActiveNotes() {
     if (activeNotes.length === 0) return;
     setOpenActiveDeleteConfirm(true);
   }
 
-  // 新增：標籤頁的一般記事本全部刪除
   function handleDeleteTaggedNotes() {
     if (activeNotes.length === 0) return;
     setOpenTagDeleteConfirm(true);
@@ -209,12 +209,6 @@ export default function App() {
     await update(id, { remind: newRemind });
   }
 
-    const { filteredNotes, expiredNotes, activeNotes } = useFilteredNotes({
-    notes,
-    selectedTag,
-    searchTerm,
-  });
-
   return (
     <div
       style={{
@@ -225,7 +219,6 @@ export default function App() {
         minHeight: "100vh",
       }}
     >
-      {/* App Header */}
       <AppHeader
         theme={theme}
         dark={dark}
@@ -233,9 +226,7 @@ export default function App() {
         onOpenSettings={() => setShowSettingsModal(true)}
       />
 
-      {/* Main Layout */}
       <div style={{ display: "flex", gap: 20, maxWidth: 1200, margin: "0 auto" }}>
-        {/* Sidebar */}
         <Sidebar
           theme={theme}
           allTags={allTags}
@@ -243,154 +234,35 @@ export default function App() {
           onSelectTag={setSelectedTag}
         />
 
-        {/* Main Content */}
-        <div style={{ flex: 1 }}>
-          <TopActions
-            theme={theme}
-            loading={loading}
-            onAdd={() => {
-              setErrMsg(null);
-              setShowModal(true);
-            }}
-            deleteMode={deleteMode}
-            onToggleDelete={toggleDeleteMode}
-            onConfirmDelete={confirmBulkDelete}
-          />
-
-          {errMsg && (
-            <div
-              style={{
-                padding: 10,
-                border: `1px solid ${theme.border}`,
-                borderRadius: 8,
-                marginBottom: 12,
-              }}
-            >
-              <b>錯誤：</b> {errMsg}
-            </div>
-          )}
-
-          {/* search box */}
-          <SearchBox
-            theme={theme}
-            value={searchTerm}
-            onChange={setSearchTerm}
-          />
-
-          <h3 style={{ marginTop: 0 }}>
-            {selectedTag ? `標籤：${selectedTag}` : "全部"}（{filteredNotes.length}）
-          </h3>
-
-          {/* 已過期的記事本 */}
-          {expiredNotes.length > 0 && (
-            <div style={{ marginBottom: 24 }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  marginBottom: 10,
-                }}
-              >
-                <h4
-                  style={{
-                    margin: 0,
-                    color: theme.text,
-                    borderLeft: "4px solid #ef4444",
-                    paddingLeft: 10,
-                  }}
-                >
-                  已過期（{expiredNotes.length}）
-                </h4>
-
-                <button
-                  onClick={handleDeleteExpiredNotes}
-                  style={{
-                    border: `1px solid ${theme.border}`,
-                    background: dark ? "rgba(239,68,68,0.12)" : "#fff5f5",
-                    color: theme.text,
-                    padding: "6px 12px",
-                    borderRadius: 8,
-                    cursor: "pointer",
-                    fontSize: 13,
-                  }}
-                >
-                  全部刪除
-                </button>
-              </div>
-
-              <NotesList
-                notes={expiredNotes}
-                theme={theme}
-                dark={dark}
-                onDelete={deleteNote}
-                onEdit={setEditingNote}
-                onRemindToggle={handleRemindToggle}
-                deleteMode={deleteMode}
-                selectedIds={selectedForDelete}
-                onSelect={handleSelect}
-              />
-            </div>
-          )}
-
-          {/* 一般記事本 */}
-          <div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 12,
-                marginBottom: 10,
-              }}
-            >
-              <h4
-                style={{
-                  margin: 0,
-                  color: theme.text,
-                  borderLeft: `4px solid ${theme.border}`,
-                  paddingLeft: 10,
-                }}
-              >
-                記事本（{activeNotes.length}）
-              </h4>
-
-              <button
-                onClick={selectedTag ? handleDeleteTaggedNotes : handleDeleteActiveNotes}
-                disabled={activeNotes.length === 0}
-                style={{
-                  border: `1px solid ${theme.border}`,
-                  background: dark ? "rgba(239,68,68,0.12)" : "#fff5f5",
-                  color: theme.text,
-                  padding: "6px 12px",
-                  borderRadius: 8,
-                  cursor: activeNotes.length === 0 ? "not-allowed" : "pointer",
-                  fontSize: 13,
-                  opacity: activeNotes.length === 0 ? 0.5 : 1,
-                }}
-              >
-                全部刪除
-              </button>
-            </div>
-
-            <NotesList
-              notes={activeNotes}
-              theme={theme}
-              dark={dark}
-              onDelete={deleteNote}
-              onEdit={setEditingNote}
-              onRemindToggle={handleRemindToggle}
-              deleteMode={deleteMode}
-              selectedIds={selectedForDelete}
-              onSelect={handleSelect}
-              emptyText="目前沒有一般記事本"
-            />
-          </div>
-        </div>
+        <NotesMainSection
+          theme={theme}
+          dark={dark}
+          loading={loading}
+          errMsg={errMsg}
+          selectedTag={selectedTag}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          filteredNotes={filteredNotes}
+          expiredNotes={expiredNotes}
+          activeNotes={activeNotes}
+          deleteMode={deleteMode}
+          selectedForDelete={selectedForDelete}
+          onAdd={() => {
+            setErrMsg(null);
+            setShowModal(true);
+          }}
+          onToggleDelete={toggleDeleteMode}
+          onConfirmBulkDelete={confirmBulkDelete}
+          onDelete={deleteNote}
+          onEdit={setEditingNote}
+          onRemindToggle={handleRemindToggle}
+          onSelect={handleSelect}
+          onDeleteExpiredNotes={handleDeleteExpiredNotes}
+          onDeleteActiveNotes={handleDeleteActiveNotes}
+          onDeleteTaggedNotes={handleDeleteTaggedNotes}
+        />
       </div>
 
-      {/* 新增筆記 Modal */}
       <NoteModal
         key={`modal-${showModal}`}
         open={showModal}
@@ -417,7 +289,6 @@ export default function App() {
         onSave={createNoteFromModal}
       />
 
-      {/* 編輯筆記 Modal */}
       <NoteEditModal
         key={`edit-${editingNote?.id || "none"}`}
         open={!!editingNote}
@@ -429,7 +300,6 @@ export default function App() {
         onSave={handleEditSave}
       />
 
-      {/* 批量刪除確認 */}
       <ConfirmModal
         open={openBulkConfirm}
         theme={theme}
@@ -444,7 +314,6 @@ export default function App() {
         }}
       />
 
-      {/* 單筆刪除確認 */}
       <ConfirmModal
         open={!!confirmDeleteId}
         theme={theme}
@@ -457,7 +326,6 @@ export default function App() {
         }}
       />
 
-      {/* 刪除全部已過期記事本確認 */}
       <ConfirmModal
         open={openExpiredDeleteConfirm}
         theme={theme}
@@ -477,7 +345,6 @@ export default function App() {
         }}
       />
 
-      {/* 刪除全部一般記事本確認（全部頁） */}
       <ConfirmModal
         open={openActiveDeleteConfirm}
         theme={theme}
@@ -497,7 +364,6 @@ export default function App() {
         }}
       />
 
-      {/* 刪除目前標籤下全部記事本確認 */}
       <ConfirmModal
         open={openTagDeleteConfirm}
         theme={theme}
@@ -517,7 +383,6 @@ export default function App() {
         }}
       />
 
-      {/* Settings Modal */}
       <SettingsModal
         open={showSettingsModal}
         theme={theme}
@@ -532,7 +397,6 @@ export default function App() {
         backupMessageType={backupMessageType}
       />
 
-      {/* Import Backup Confirm Modal */}
       <ImportConfirmModal
         open={importConfirmOpen}
         theme={theme}

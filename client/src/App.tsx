@@ -15,6 +15,7 @@ import AppHeader from "./components/AppHeader";
 import SearchBox from "./components/SearchBox";
 import { useBackup } from "./hooks/useBackup";
 import ImportConfirmModal from "./components/ImportConfirmModal";
+import { useFilteredNotes } from "./hooks/useFilteredNotes";
 
 function getInitialRemindAdvanceMinutes() {
   const saved = localStorage.getItem("remindAdvanceMinutes");
@@ -208,38 +209,11 @@ export default function App() {
     await update(id, { remind: newRemind });
   }
 
-  // 搜尋筆記（標題或內容包含搜尋字串，且符合選擇的標籤）
-  const filteredNotes = notes.filter((n) => {
-    if (selectedTag && n.tag !== selectedTag) return false;
-
-    const txt = searchTerm.trim().toLowerCase();
-    if (!txt) return true;
-    if (n.title.toLowerCase().includes(txt)) return true;
-    if (n.content.toLowerCase().includes(txt)) return true;
-
-    return false;
+    const { filteredNotes, expiredNotes, activeNotes } = useFilteredNotes({
+    notes,
+    selectedTag,
+    searchTerm,
   });
-
-  /// 過期與未過期分開顯示
-  const now = Date.now();
-  const expiredNotes = filteredNotes.filter((n) => {
-    if (!n.endAt) return false;
-
-    const endTime = new Date(n.endAt).getTime();
-    if (Number.isNaN(endTime)) return false;
-
-    return endTime < now;
-  });
-
-  const activeNotes = filteredNotes.filter((n) => {
-    if (!n.endAt) return true;
-
-    const endTime = new Date(n.endAt).getTime();
-    if (Number.isNaN(endTime)) return true;
-
-    return endTime >= now;
-  });
-  ///
 
   return (
     <div

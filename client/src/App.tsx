@@ -53,36 +53,44 @@ export default function App() {
   const [openBulkConfirm, setOpenBulkConfirm] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [openExpiredDeleteConfirm, setOpenExpiredDeleteConfirm] = useState(false);
+
+  // 新增：全部頁的一般記事本全部刪除確認
+  const [openActiveDeleteConfirm, setOpenActiveDeleteConfirm] = useState(false);
+
+  // 新增：標籤頁的一般記事本全部刪除確認
+  const [openTagDeleteConfirm, setOpenTagDeleteConfirm] = useState(false);
+
   const [remindAdvanceMinutes, setRemindAdvanceMinutes] = useState<number>(
     getInitialRemindAdvanceMinutes
   );
+
   const allTags = Array.from(
-  new Set(
-    notes
-      .map((n) => n.tag?.trim())
-      .filter((tag): tag is string => Boolean(tag))
-  )
-).sort((a, b) => a.localeCompare(b));
+    new Set(
+      notes
+        .map((n) => n.tag?.trim())
+        .filter((tag): tag is string => Boolean(tag))
+    )
+  ).sort((a, b) => a.localeCompare(b));
 
   const {
-  backupMessage,
-  backupMessageType,
-  handleExportBackup,
-  handleImportBackup,
-  importConfirmOpen,
-  confirmImportBackup,
-  cancelImportBackup,
-} = useBackup({
-  dark,
-  remindAdvanceMinutes,
-  setDark,
-  setRemindAdvanceMinutes,
-});
+    backupMessage,
+    backupMessageType,
+    handleExportBackup,
+    handleImportBackup,
+    importConfirmOpen,
+    confirmImportBackup,
+    cancelImportBackup,
+  } = useBackup({
+    dark,
+    remindAdvanceMinutes,
+    setDark,
+    setRemindAdvanceMinutes,
+  });
 
-async function handleImportFromSettings() {
-  setShowSettingsModal(false);
-  await handleImportBackup();
-}
+  async function handleImportFromSettings() {
+    setShowSettingsModal(false);
+    await handleImportBackup();
+  }
 
   useEffect(() => {
     document.body.style.background = theme.bg;
@@ -103,7 +111,6 @@ async function handleImportFromSettings() {
     localStorage.setItem("remindAdvanceMinutes", remindAdvanceMinutes.toString());
   }, [remindAdvanceMinutes]);
 
-  ///
   useEffect(() => {
     console.log("[Renderer] remindAdvanceMinutes =", remindAdvanceMinutes);
     console.log(
@@ -130,8 +137,6 @@ async function handleImportFromSettings() {
         console.error("[Renderer] failed to sync reminders:", err);
       });
   }, [notes, remindAdvanceMinutes]);
-
-  
 
   async function createNoteFromModal() {
     const v = form.validate();
@@ -174,6 +179,18 @@ async function handleImportFromSettings() {
   function handleDeleteExpiredNotes() {
     if (expiredNotes.length === 0) return;
     setOpenExpiredDeleteConfirm(true);
+  }
+
+  // 新增：全部頁的一般記事本全部刪除
+  function handleDeleteActiveNotes() {
+    if (activeNotes.length === 0) return;
+    setOpenActiveDeleteConfirm(true);
+  }
+
+  // 新增：標籤頁的一般記事本全部刪除
+  function handleDeleteTaggedNotes() {
+    if (activeNotes.length === 0) return;
+    setOpenTagDeleteConfirm(true);
   }
 
   async function handleEditSave(id: string, data: any) {
@@ -345,16 +362,43 @@ async function handleImportFromSettings() {
 
           {/* 一般記事本 */}
           <div>
-            <h4
+            <div
               style={{
-                margin: "0 0 10px 0",
-                color: theme.text,
-                borderLeft: `4px solid ${theme.border}`,
-                paddingLeft: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                marginBottom: 10,
               }}
             >
-              記事本（{activeNotes.length}）
-            </h4>
+              <h4
+                style={{
+                  margin: 0,
+                  color: theme.text,
+                  borderLeft: `4px solid ${theme.border}`,
+                  paddingLeft: 10,
+                }}
+              >
+                記事本（{activeNotes.length}）
+              </h4>
+
+              <button
+                onClick={selectedTag ? handleDeleteTaggedNotes : handleDeleteActiveNotes}
+                disabled={activeNotes.length === 0}
+                style={{
+                  border: `1px solid ${theme.border}`,
+                  background: dark ? "rgba(239,68,68,0.12)" : "#fff5f5",
+                  color: theme.text,
+                  padding: "6px 12px",
+                  borderRadius: 8,
+                  cursor: activeNotes.length === 0 ? "not-allowed" : "pointer",
+                  fontSize: 13,
+                  opacity: activeNotes.length === 0 ? 0.5 : 1,
+                }}
+              >
+                全部刪除
+              </button>
+            </div>
 
             <NotesList
               notes={activeNotes}
@@ -456,6 +500,46 @@ async function handleImportFromSettings() {
           });
 
           setOpenExpiredDeleteConfirm(false);
+        }}
+      />
+
+      {/* 刪除全部一般記事本確認（全部頁） */}
+      <ConfirmModal
+        open={openActiveDeleteConfirm}
+        theme={theme}
+        message={`確定刪除 ${activeNotes.length} 筆記事本？`}
+        onCancel={() => setOpenActiveDeleteConfirm(false)}
+        onConfirm={async () => {
+          const idsToDelete = activeNotes.map((n) => n.id);
+          await batchRemove(idsToDelete);
+
+          setSelectedForDelete((prev) => {
+            const next = new Set(prev);
+            idsToDelete.forEach((id) => next.delete(id));
+            return next;
+          });
+
+          setOpenActiveDeleteConfirm(false);
+        }}
+      />
+
+      {/* 刪除目前標籤下全部記事本確認 */}
+      <ConfirmModal
+        open={openTagDeleteConfirm}
+        theme={theme}
+        message={`確定刪除標籤「${selectedTag}」下的 ${activeNotes.length} 筆記事本？`}
+        onCancel={() => setOpenTagDeleteConfirm(false)}
+        onConfirm={async () => {
+          const idsToDelete = activeNotes.map((n) => n.id);
+          await batchRemove(idsToDelete);
+
+          setSelectedForDelete((prev) => {
+            const next = new Set(prev);
+            idsToDelete.forEach((id) => next.delete(id));
+            return next;
+          });
+
+          setOpenTagDeleteConfirm(false);
         }}
       />
 

@@ -19,7 +19,14 @@ export function useFilteredNotes({
     const txt = searchTerm.trim().toLowerCase();
 
     return notes.filter((n) => {
-      if (selectedTag && n.tag !== selectedTag) return false;
+      if (selectedTag) {
+        const tags = (n.tag ?? "")
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean);
+
+        if (!tags.includes(selectedTag)) return false;
+      }
 
       if (!txt) return true;
       if (n.title.toLowerCase().includes(txt)) return true;

@@ -207,17 +207,26 @@ export default function NotesList(props: NoteListProps) {
             }}
           >
             {n.tag && (
-              <span
-                style={{
-                  display: "inline-block",
-                  background: theme.inputBg,
-                  padding: "2px 8px",
-                  borderRadius: 12,
-                  border: `1px solid ${theme.border}`,
-                }}
-              >
-                🏷️ {n.tag}
-              </span>
+              <>
+                {(n.tag ?? "")
+                  .split(",")
+                  .map((t) => t.trim())
+                  .filter(Boolean)
+                  .map((t, idx) => (
+                    <span
+                      key={`${n.id}-tag-${idx}`}
+                      style={{
+                        display: "inline-block",
+                        background: theme.inputBg,
+                        padding: "2px 8px",
+                        borderRadius: 12,
+                        border: `1px solid ${theme.border}`,
+                      }}
+                    >
+                      🏷️ {t}
+                    </span>
+                  ))}
+              </>
             )}
 
             

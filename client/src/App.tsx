@@ -67,7 +67,8 @@ export default function App() {
   const allTags = Array.from(
     new Set(
       notes
-        .map((n) => n.tag?.trim())
+        .flatMap((n) => (n.tag ?? "").split(","))
+        .map((t) => t.trim())
         .filter((tag): tag is string => Boolean(tag))
     )
   ).sort((a, b) => a.localeCompare(b));
